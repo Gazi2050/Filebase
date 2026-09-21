@@ -36,10 +36,438 @@ import {
   SidebarLeftIcon,
   FileAddIcon,
   FolderAddIcon,
+  PencilEdit01Icon,
+  Delete02Icon,
+  ArrowRight01Icon,
+  Alert02Icon,
 } from "@hugeicons/core-free-icons";
-import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
+import { useWorkspaceStore, type InlineCreateState } from "@/lib/store/use-workspace-store";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+function InlineCardRenameInput({
+  initialValue,
+  onConfirm,
+  onCancel,
+  className,
+}: {
+  initialValue: string;
+  onConfirm: (val: string) => void;
+  onCancel: () => void;
+  className?: string;
+}) {
+  const [val, setVal] = React.useState(initialValue);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    inputRef.current?.focus();
+    const dot = initialValue.lastIndexOf(".");
+    if (dot > 0 && inputRef.current) {
+      inputRef.current.setSelectionRange(0, dot);
+    } else {
+      inputRef.current?.select();
+    }
+  }, [initialValue]);
+
+  return (
+    <input
+      ref={inputRef}
+      value={val}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => setVal(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          onConfirm(val);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          onCancel();
+        }
+      }}
+      onBlur={() => {
+        if (val.trim()) onConfirm(val);
+        else onCancel();
+      }}
+      className={cn(
+        "h-6 w-full rounded border border-primary bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40",
+        className
+      )}
+    />
+  );
+}
+
+function InlineCreateCard({
+  type,
+  onConfirm,
+  onCancel,
+}: {
+  type: "folder" | "file";
+  onConfirm: (val: string) => void;
+  onCancel: () => void;
+}) {
+  const [val, setVal] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border-2 border-primary/60 bg-card p-3 shadow-xs">
+      <HugeiconsIcon
+        icon={type === "folder" ? Folder01Icon : FileTextIcon}
+        className={cn(
+          "size-5 shrink-0",
+          type === "folder" ? "text-primary" : "text-muted-foreground"
+        )}
+      />
+      <input
+        ref={inputRef}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            onConfirm(val);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            onCancel();
+          }
+        }}
+        onBlur={() => {
+          if (val.trim()) onConfirm(val);
+          else onCancel();
+        }}
+        placeholder={type === "file" ? "filename (.txt)" : "folder name"}
+        className="h-6 flex-1 min-w-0 rounded border border-primary/50 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40"
+      />
+    </div>
+  );
+}
+
+function FolderView({
+  folder,
+  childrenItems,
+  inlineCreate,
+  renamingItemId,
+  onOpenFolder,
+  onOpenFile,
+  onNewFile,
+  onNewFolder,
+  onRename,
+  onConfirmRename,
+  onCancelRename,
+  onConfirmCreate,
+  onCancelCreate,
+  onDelete,
+  onOpenSearch,
+}: {
+  folder: WorkspaceItem;
+  childrenItems: WorkspaceItem[];
+  inlineCreate: InlineCreateState | null;
+  renamingItemId: string | null;
+  onOpenFolder: (id: string) => void;
+  onOpenFile: (id: string) => void;
+  onNewFile: () => void;
+  onNewFolder: () => void;
+  onRename: (id: string) => void;
+  onConfirmRename: (id: string, name: string) => void;
+  onCancelRename: () => void;
+  onConfirmCreate: (name: string) => void;
+  onCancelCreate: () => void;
+  onDelete: (id: string) => void;
+  onOpenSearch: () => void;
+}) {
+  const isRoot = folder.id === ROOT_ITEM_ID;
+  const isRenamingThisFolder = renamingItemId === folder.id;
+
+  const childFolders = childrenItems.filter((i) => i.type === "folder");
+  const childFiles = childrenItems.filter((i) => i.type === "file");
+
+  const isCreatingHere = inlineCreate !== null && inlineCreate.parentId === folder.id;
+
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto p-6 md:p-8">
+      {/* Folder Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <HugeiconsIcon icon={Folder01Icon} className="size-6 text-primary shrink-0" />
+            {isRenamingThisFolder ? (
+              <InlineCardRenameInput
+                initialValue={folder.name}
+                onConfirm={(newName) => onConfirmRename(folder.id, newName)}
+                onCancel={onCancelRename}
+                className="text-xl font-bold h-9 w-auto min-w-48"
+              />
+            ) : (
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {folder.name}
+              </h1>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {childrenItems.length} {childrenItems.length === 1 ? "item" : "items"} in this location
+          </p>
+        </div>
+
+        {/* Quick actions for current folder */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={onNewFile}
+            className="h-8 gap-1.5 cursor-pointer text-xs"
+          >
+            <HugeiconsIcon icon={FileAddIcon} className="size-3.5" />
+            <span>New File</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={onNewFolder}
+            className="h-8 gap-1.5 cursor-pointer text-xs"
+          >
+            <HugeiconsIcon icon={FolderAddIcon} className="size-3.5" />
+            <span>New Folder</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={onOpenSearch}
+            className="h-8 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+          >
+            <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
+            <span>Search</span>
+          </Button>
+
+          {!isRoot && (
+            <>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => onRename(folder.id)}
+                className="h-8 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+                title="Rename folder"
+              >
+                <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+                <span>Rename</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => onDelete(folder.id)}
+                className="h-8 gap-1.5 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                title="Delete folder"
+              >
+                <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
+                <span>Delete</span>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Empty Folder State */}
+      {childrenItems.length === 0 && !isCreatingHere ? (
+        <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 p-12 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 mb-4">
+            <HugeiconsIcon icon={Folder01Icon} className="size-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">This folder is empty</h3>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+            Get started by creating a new text document or folder inside{" "}
+            <span className="font-medium text-foreground">{folder.name}</span>.
+          </p>
+          <div className="mt-6 flex items-center gap-2">
+            <Button size="xs" onClick={onNewFile} className="gap-1.5 cursor-pointer">
+              <HugeiconsIcon icon={FileAddIcon} className="size-3.5" />
+              <span>Create File</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={onNewFolder}
+              className="gap-1.5 cursor-pointer"
+            >
+              <HugeiconsIcon icon={FolderAddIcon} className="size-3.5" />
+              <span>Create Folder</span>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Folders Section */}
+          {(childFolders.length > 0 || (isCreatingHere && inlineCreate.type === "folder")) && (
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Folders ({childFolders.length + (isCreatingHere && inlineCreate.type === "folder" ? 1 : 0)})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {isCreatingHere && inlineCreate.type === "folder" && (
+                  <InlineCreateCard
+                    type="folder"
+                    onConfirm={onConfirmCreate}
+                    onCancel={onCancelCreate}
+                  />
+                )}
+
+                {childFolders.map((subfolder) => {
+                  const isRenaming = renamingItemId === subfolder.id;
+                  return (
+                    <div
+                      key={subfolder.id}
+                      onClick={() => !isRenaming && onOpenFolder(subfolder.id)}
+                      className="group relative flex items-center justify-between rounded-lg border bg-card/60 p-3.5 transition-all hover:bg-accent/40 hover:border-primary/40 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                        <HugeiconsIcon icon={Folder01Icon} className="size-5 shrink-0 text-primary" />
+                        <div className="min-w-0 flex-1">
+                          {isRenaming ? (
+                            <InlineCardRenameInput
+                              initialValue={subfolder.name}
+                              onConfirm={(val) => onConfirmRename(subfolder.id, val)}
+                              onCancel={onCancelRename}
+                            />
+                          ) : (
+                            <>
+                              <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {subfolder.name}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">Folder</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {!isRenaming && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRename(subfolder.id);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+                            title="Rename"
+                          >
+                            <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(subfolder.id);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Delete"
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
+                          </button>
+                          <HugeiconsIcon
+                            icon={ArrowRight01Icon}
+                            className="size-3.5 text-muted-foreground ml-1"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Files Section */}
+          {(childFiles.length > 0 || (isCreatingHere && inlineCreate.type === "file")) && (
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                Files ({childFiles.length + (isCreatingHere && inlineCreate.type === "file" ? 1 : 0)})
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {isCreatingHere && inlineCreate.type === "file" && (
+                  <InlineCreateCard
+                    type="file"
+                    onConfirm={onConfirmCreate}
+                    onCancel={onCancelCreate}
+                  />
+                )}
+
+                {childFiles.map((file) => {
+                  const isRenaming = renamingItemId === file.id;
+                  return (
+                    <div
+                      key={file.id}
+                      onClick={() => !isRenaming && onOpenFile(file.id)}
+                      className="group relative flex items-center justify-between rounded-lg border bg-card/60 p-3.5 transition-all hover:bg-accent/40 hover:border-primary/40 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
+                        <HugeiconsIcon
+                          icon={FileTextIcon}
+                          className="size-5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors"
+                        />
+                        <div className="min-w-0 flex-1">
+                          {isRenaming ? (
+                            <InlineCardRenameInput
+                              initialValue={file.name}
+                              onConfirm={(val) => onConfirmRename(file.id, val)}
+                              onCancel={onCancelRename}
+                            />
+                          ) : (
+                            <>
+                              <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {file.name}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-mono">
+                                {file.name.split(".").pop()?.toUpperCase() || "TXT"} File
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {!isRenaming && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRename(file.id);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+                            title="Rename"
+                          >
+                            <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(file.id);
+                            }}
+                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            title="Delete"
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function MainContent() {
   const [openCommand, setOpenCommand] = React.useState(false);
@@ -48,11 +476,24 @@ function MainContent() {
     items,
     activeFileId,
     activeFileContent,
+    isDirty,
+    selectedFolderId,
     updateActiveContent,
     saveActiveFile,
     isSaving,
     selectItem,
+    openFolder,
     startInlineCreate,
+    cancelInlineCreate,
+    confirmInlineCreate,
+    inlineCreate,
+    startRename,
+    cancelRename,
+    confirmRename,
+    renamingItemId,
+    promptDeleteItem,
+    errorMessage,
+    setErrorMessage,
   } = useWorkspaceStore();
 
   // Keyboard shortcuts: Ctrl+K / Cmd+K (Search), Ctrl+S / Cmd+S (Save)
@@ -63,20 +504,45 @@ function MainContent() {
         setOpenCommand((prev) => !prev);
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        saveActiveFile();
+        if (activeFileId) {
+          e.preventDefault();
+          saveActiveFile();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveActiveFile]);
+  }, [saveActiveFile, activeFileId]);
 
-  // Compute dynamic breadcrumbs from active file
+  // Window beforeunload listener for unsaved text-file changes
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  // Auto-dismiss errorMessage after 4.5 seconds
+  React.useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage(null);
+      }, 4500);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage, setErrorMessage]);
+
+  // Compute dynamic breadcrumbs based on active file or current folder
+  const itemsMap = React.useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+
   const breadcrumbs = React.useMemo(() => {
-    if (!activeFileId) return [];
+    const targetId = activeFileId || selectedFolderId || ROOT_ITEM_ID;
     const crumbs: WorkspaceItem[] = [];
-    const itemsMap = new Map(items.map((i) => [i.id, i]));
-    let currentId: string | null = activeFileId;
+    let currentId: string | null = targetId;
 
     while (currentId && currentId !== ROOT_ITEM_ID) {
       const item = itemsMap.get(currentId);
@@ -85,9 +551,31 @@ function MainContent() {
       currentId = item.parentId;
     }
     return crumbs;
-  }, [items, activeFileId]);
+  }, [itemsMap, activeFileId, selectedFolderId]);
 
-  const activeFileName = breadcrumbs[breadcrumbs.length - 1]?.name ?? "No file opened";
+  const currentFolder = React.useMemo(() => {
+    return itemsMap.get(selectedFolderId) || itemsMap.get(ROOT_ITEM_ID) || {
+      id: ROOT_ITEM_ID,
+      name: "Workspace",
+      type: "folder" as const,
+      parentId: null,
+      createdAt: 0,
+      updatedAt: 0,
+    };
+  }, [itemsMap, selectedFolderId]);
+
+  const currentFolderChildren = React.useMemo(() => {
+    return items
+      .filter((i) => i.parentId === currentFolder.id)
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      });
+  }, [items, currentFolder.id]);
+
+  const activeFile = React.useMemo(() => {
+    return activeFileId ? itemsMap.get(activeFileId) : null;
+  }, [itemsMap, activeFileId]);
 
   const fileItems = React.useMemo(
     () => items.filter((i) => i.type === "file"),
@@ -100,50 +588,87 @@ function MainContent() {
 
   return (
     <SidebarInset className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* Editor Header: Exact same height (h-11) and border-b as Sidebar Header */}
+      {/* Floating Error Toast Notification */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-medium text-destructive shadow-lg backdrop-blur-xs animate-in fade-in-0 slide-in-from-top-2">
+          <HugeiconsIcon icon={Alert02Icon} className="size-4 shrink-0" />
+          <span>{errorMessage}</span>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="ml-2 rounded p-0.5 hover:bg-destructive/20 text-destructive cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Top Header: Exact same height (h-11) and border-b as Sidebar Header */}
       <header className="flex h-11 shrink-0 items-center justify-between border-b px-3.5 select-none bg-background">
-        {/* Left: Sidebar Toggle & Dynamic Breadcrumbs */}
+        {/* Left: Sidebar Toggle & Clickable Dynamic Breadcrumbs */}
         <div className="flex items-center gap-2.5 min-w-0">
           <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer" />
 
-          {breadcrumbs.length > 0 ? (
-            <Breadcrumb className="hidden sm:block">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="#">Workspace</BreadcrumbLink>
-                </BreadcrumbItem>
-                {breadcrumbs.map((crumb, idx) => {
-                  const isLast = idx === breadcrumbs.length - 1;
-                  return (
-                    <React.Fragment key={crumb.id}>
-                      <BreadcrumbSeparator />
-                      <BreadcrumbItem>
-                        {isLast ? (
-                          <BreadcrumbPage>{crumb.name}</BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
+          <Breadcrumb className="hidden sm:block">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                {activeFileId || (selectedFolderId && selectedFolderId !== ROOT_ITEM_ID) ? (
+                  <BreadcrumbLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openFolder(ROOT_ITEM_ID);
+                    }}
+                  >
+                    Workspace
+                  </BreadcrumbLink>
+                ) : (
+                  <BreadcrumbPage>Workspace</BreadcrumbPage>
+                )}
+              </BreadcrumbItem>
+
+              {breadcrumbs.map((crumb, idx) => {
+                const isLast = idx === breadcrumbs.length - 1;
+                return (
+                  <React.Fragment key={crumb.id}>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {isLast ? (
+                        <BreadcrumbPage className="flex items-center gap-1.5 font-medium">
+                          <span>{crumb.name}</span>
+                          {crumb.type === "file" && isDirty && (
+                            <span
+                              className="size-2 rounded-full bg-primary animate-pulse"
+                              title="Unsaved changes"
+                            />
+                          )}
+                        </BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (crumb.type === "folder") {
+                              openFolder(crumb.id);
+                            } else {
                               selectItem(crumb.id);
-                            }}
-                          >
-                            {crumb.name}
-                          </BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                    </React.Fragment>
-                  );
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
-          ) : (
-            <span className="text-sm text-muted-foreground hidden sm:inline">Workspace</span>
-          )}
+                            }
+                          }}
+                        >
+                          {crumb.name}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
+                );
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
 
           {/* Mobile short title */}
-          <span className="text-sm font-medium sm:hidden truncate">
-            {activeFileName}
+          <span className="text-sm font-medium sm:hidden truncate flex items-center gap-1.5">
+            <span>{activeFile ? activeFile.name : currentFolder.name}</span>
+            {isDirty && <span className="size-2 rounded-full bg-primary" />}
           </span>
         </div>
 
@@ -159,22 +684,29 @@ function MainContent() {
             <Kbd className="text-[10px]">Ctrl K</Kbd>
           </button>
 
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={() => saveActiveFile()}
-            disabled={!activeFileId || isSaving}
-            className="h-7 gap-1.5 cursor-pointer"
-          >
-            <HugeiconsIcon icon={FloppyDiskIcon} className="size-3.5" />
-            <span>{isSaving ? "Saving..." : "Save"}</span>
-          </Button>
+          {activeFileId && (
+            <Button
+              variant={isDirty ? "default" : "outline"}
+              size="xs"
+              onClick={() => saveActiveFile()}
+              disabled={isSaving}
+              className={cn(
+                "h-7 gap-1.5 cursor-pointer transition-colors",
+                isDirty && "shadow-sm"
+              )}
+            >
+              <HugeiconsIcon icon={FloppyDiskIcon} className="size-3.5" />
+              <span>
+                {isSaving ? "Saving..." : isDirty ? "Save *" : "Save"}
+              </span>
+            </Button>
+          )}
         </div>
       </header>
 
-      {/* Editor Canvas */}
-      <div className="flex flex-1 overflow-auto p-6">
-        {activeFileId ? (
+      {/* Main Panel Canvas: Dual-Mode (Editor vs Folder View) */}
+      {activeFileId ? (
+        <div className="flex flex-1 overflow-auto p-6">
           <textarea
             value={activeFileContent}
             onChange={(e) => updateActiveContent(e.target.value)}
@@ -182,12 +714,26 @@ function MainContent() {
             placeholder="Start typing notes..."
             spellCheck={false}
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-            Select a file from the sidebar to start editing
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <FolderView
+          folder={currentFolder}
+          childrenItems={currentFolderChildren}
+          inlineCreate={inlineCreate}
+          renamingItemId={renamingItemId}
+          onOpenFolder={(folderId) => openFolder(folderId)}
+          onOpenFile={(fileId) => selectItem(fileId)}
+          onNewFile={() => startInlineCreate("file", currentFolder.id)}
+          onNewFolder={() => startInlineCreate("folder", currentFolder.id)}
+          onRename={(id) => startRename(id)}
+          onConfirmRename={(id, name) => confirmRename(id, name)}
+          onCancelRename={() => cancelRename()}
+          onConfirmCreate={(name) => confirmInlineCreate(name)}
+          onCancelCreate={() => cancelInlineCreate()}
+          onDelete={(id) => promptDeleteItem(id)}
+          onOpenSearch={() => setOpenCommand(true)}
+        />
+      )}
 
       {/* Floating Command Palette Dialog */}
       <CommandDialog open={openCommand} onOpenChange={setOpenCommand}>
@@ -221,7 +767,7 @@ function MainContent() {
               <CommandItem
                 key={folder.id}
                 onSelect={() => {
-                  selectItem(folder.id);
+                  openFolder(folder.id);
                   setOpenCommand(false);
                 }}
                 className="cursor-pointer"
@@ -238,7 +784,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                startInlineCreate("file");
+                startInlineCreate("file", currentFolder.id);
               }}
               className="cursor-pointer"
             >
@@ -249,7 +795,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                startInlineCreate("folder");
+                startInlineCreate("folder", currentFolder.id);
               }}
               className="cursor-pointer"
             >

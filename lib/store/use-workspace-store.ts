@@ -22,8 +22,11 @@ interface WorkspaceState {
   items: WorkspaceItem[];
   isInitialized: boolean;
   selectedItemId: string | null;
+  selectedFolderId: string;
   activeFileId: string | null;
   activeFileContent: string;
+  lastSavedContent: string;
+  isDirty: boolean;
   expandedItemIds: string[];
   isSaving: boolean;
 
@@ -36,9 +39,15 @@ interface WorkspaceState {
   // Delete confirm dialog state
   itemToDelete: WorkspaceItem | null;
 
+  // Validation/Error state
+  errorMessage: string | null;
+
   // Actions
   init: () => Promise<void>;
+  setErrorMessage: (msg: string | null) => void;
   selectItem: (id: string) => Promise<void>;
+  openFolder: (folderId: string) => Promise<void>;
+  revealItemInTree: (itemId: string) => void;
   clearSelection: () => void;
   setExpandedItemIds: (ids: string[]) => void;
   toggleExpandItem: (id: string) => void;
@@ -67,14 +76,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   items: INITIAL_ITEMS,
   isInitialized: false,
   selectedItemId: "file-notes",
+  selectedFolderId: "folder-webbly",
   activeFileId: "file-notes",
   activeFileContent: "",
+  lastSavedContent: "",
+  isDirty: false,
   expandedItemIds: [ROOT_ITEM_ID, "folder-projects", "folder-webbly"],
   isSaving: false,
 
   inlineCreate: null,
   renamingItemId: null,
   itemToDelete: null,
+  errorMessage: null,
+
+  setErrorMessage: (msg: string | null) => {
+    set({ errorMessage: msg });
+  },
 
   init: async () => {
     if (get().isInitialized) return;
@@ -82,38 +99,93 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const items = await fetchAllItems();
     const activeFileId = get().activeFileId || "file-notes";
     const content = await fetchFileContent(activeFileId);
+    const activeItem = items.find((i) => i.id === activeFileId);
+    const selectedFolderId = activeItem?.parentId ?? ROOT_ITEM_ID;
 
     set({
       items,
       isInitialized: true,
       activeFileId,
       selectedItemId: activeFileId,
+      selectedFolderId,
       activeFileContent: content,
+      lastSavedContent: content,
+      isDirty: false,
     });
   },
 
+  revealItemInTree: (itemId: string) => {
+    const { items, expandedItemIds } = get();
+    const itemsMap = new Map(items.map((i) => [i.id, i]));
+    const toExpand: string[] = [];
+
+    let current = itemsMap.get(itemId);
+    while (current && current.parentId) {
+      toExpand.push(current.parentId);
+      current = itemsMap.get(current.parentId);
+    }
+    if (!toExpand.includes(ROOT_ITEM_ID)) {
+      toExpand.push(ROOT_ITEM_ID);
+    }
+
+    const merged = Array.from(new Set([...expandedItemIds, ...toExpand]));
+    set({ expandedItemIds: merged });
+  },
+
   selectItem: async (id: string) => {
-    const { items, activeFileId, activeFileContent } = get();
+    const { items, activeFileId, activeFileContent, isDirty } = get();
     const target = items.find((i) => i.id === id);
     if (!target) return;
 
+    // Auto-save pending file edits if switching to another item
+    if (activeFileId && isDirty && activeFileId !== id) {
+      await saveFileContent(activeFileId, activeFileContent);
+    }
+
+    get().revealItemInTree(id);
+
     if (target.type === "file") {
-      if (activeFileId && activeFileId !== id) {
-        await saveFileContent(activeFileId, activeFileContent);
-      }
       const content = await fetchFileContent(id);
       set({
         selectedItemId: id,
+        selectedFolderId: target.parentId ?? ROOT_ITEM_ID,
         activeFileId: id,
         activeFileContent: content,
+        lastSavedContent: content,
+        isDirty: false,
       });
     } else {
-      set({ selectedItemId: id });
+      set({
+        selectedItemId: id,
+        selectedFolderId: id,
+        activeFileId: null,
+        activeFileContent: "",
+        lastSavedContent: "",
+        isDirty: false,
+      });
     }
   },
 
+  openFolder: async (folderId: string) => {
+    const { activeFileId, activeFileContent, isDirty } = get();
+    if (activeFileId && isDirty) {
+      await saveFileContent(activeFileId, activeFileContent);
+    }
+
+    get().revealItemInTree(folderId);
+
+    set({
+      selectedItemId: folderId,
+      selectedFolderId: folderId,
+      activeFileId: null,
+      activeFileContent: "",
+      lastSavedContent: "",
+      isDirty: false,
+    });
+  },
+
   clearSelection: () => {
-    set({ selectedItemId: null });
+    set({ selectedItemId: null, selectedFolderId: ROOT_ITEM_ID });
   },
 
   setExpandedItemIds: (ids: string[]) => {
@@ -130,7 +202,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   startInlineCreate: (type: ItemType, targetParentId?: string) => {
-    const { items, selectedItemId, expandedItemIds } = get();
+    const { items, selectedItemId, selectedFolderId, expandedItemIds } = get();
     let parentId = targetParentId;
 
     if (!parentId) {
@@ -141,10 +213,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         } else if (selected?.parentId) {
           parentId = selected.parentId;
         } else {
-          parentId = ROOT_ITEM_ID;
+          parentId = selectedFolderId || ROOT_ITEM_ID;
         }
       } else {
-        parentId = ROOT_ITEM_ID;
+        parentId = selectedFolderId || ROOT_ITEM_ID;
       }
     }
 
@@ -182,7 +254,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         item.name.toLowerCase() === finalName.toLowerCase()
     );
     if (exists) {
-      set({ inlineCreate: null });
+      set({
+        inlineCreate: null,
+        errorMessage: `An item named "${finalName}" already exists in this folder.`,
+      });
       return null;
     }
 
@@ -198,8 +273,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         items: updatedItems,
         expandedItemIds: nextExpanded,
         selectedItemId: newItem.id,
+        selectedFolderId: inlineCreate.parentId,
         activeFileId: newItem.id,
         activeFileContent: "",
+        lastSavedContent: "",
+        isDirty: false,
         inlineCreate: null,
       });
     } else {
@@ -207,6 +285,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         items: updatedItems,
         expandedItemIds: [...nextExpanded, newItem.id],
         selectedItemId: newItem.id,
+        selectedFolderId: newItem.id,
         inlineCreate: null,
       });
     }
@@ -253,7 +332,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         i.name.toLowerCase() === finalName.toLowerCase()
     );
     if (exists) {
-      set({ renamingItemId: null });
+      set({
+        renamingItemId: null,
+        errorMessage: `An item named "${finalName}" already exists in this folder.`,
+      });
       return false;
     }
 
@@ -277,25 +359,54 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   confirmDeleteItem: async () => {
-    const { itemToDelete, activeFileId, selectedItemId } = get();
+    const { itemToDelete, activeFileId, selectedItemId, selectedFolderId, items } = get();
     if (!itemToDelete) return;
+
+    // Determine all IDs that are being deleted (item and descendants)
+    const deletedIds = new Set<string>([itemToDelete.id]);
+    const queue = [itemToDelete.id];
+    while (queue.length > 0) {
+      const parent = queue.shift()!;
+      for (const item of items) {
+        if (item.parentId === parent) {
+          deletedIds.add(item.id);
+          queue.push(item.id);
+        }
+      }
+    }
 
     await dbDeleteItem(itemToDelete.id);
     const updatedItems = await fetchAllItems();
 
+    // Determine parent folder to navigate to
+    const fallbackFolderId = itemToDelete.parentId ?? ROOT_ITEM_ID;
+
     let nextActiveFileId = activeFileId;
     let nextActiveContent = get().activeFileContent;
+    let nextLastSaved = get().lastSavedContent;
+    let nextIsDirty = get().isDirty;
     let nextSelected = selectedItemId;
+    let nextFolderId = selectedFolderId;
 
-    // Check if active file was deleted or inside deleted folder
-    const activeItemStillExists = updatedItems.some((i) => i.id === activeFileId);
-    if (!activeItemStillExists) {
+    // If active file was deleted (or was inside deleted folder), reset editor
+    if (activeFileId && deletedIds.has(activeFileId)) {
       nextActiveFileId = null;
       nextActiveContent = "";
+      nextLastSaved = "";
+      nextIsDirty = false;
     }
 
-    if (selectedItemId === itemToDelete.id) {
-      nextSelected = null;
+    // If selected item was deleted, navigate to parent folder
+    if (selectedItemId && deletedIds.has(selectedItemId)) {
+      nextSelected = fallbackFolderId;
+    }
+
+    // If selected folder was deleted, navigate to parent folder
+    if (deletedIds.has(selectedFolderId)) {
+      nextFolderId = fallbackFolderId;
+      if (!nextActiveFileId) {
+        nextSelected = fallbackFolderId;
+      }
     }
 
     set({
@@ -303,12 +414,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       itemToDelete: null,
       activeFileId: nextActiveFileId,
       activeFileContent: nextActiveContent,
+      lastSavedContent: nextLastSaved,
+      isDirty: nextIsDirty,
       selectedItemId: nextSelected,
+      selectedFolderId: nextFolderId,
     });
   },
 
   updateActiveContent: (content: string) => {
-    set({ activeFileContent: content });
+    const isDirty = content !== get().lastSavedContent;
+    set({ activeFileContent: content, isDirty });
   },
 
   saveActiveFile: async () => {
@@ -318,6 +433,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ isSaving: true });
     await saveFileContent(activeFileId, activeFileContent);
     const items = await fetchAllItems();
-    set({ items, isSaving: false });
+    set({
+      items,
+      isSaving: false,
+      lastSavedContent: activeFileContent,
+      isDirty: false,
+    });
   },
 }));
