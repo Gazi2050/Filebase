@@ -1,0 +1,63 @@
+"use client";
+
+import * as React from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FileAddIcon, FolderAddIcon } from "@hugeicons/core-free-icons";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { FileTree } from "@/components/sidebar/file-tree";
+import { CreateItemDialog } from "@/components/modals/create-item-dialog";
+import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
+
+export function AppSidebar() {
+  const { openCreateDialog } = useWorkspaceStore();
+
+  return (
+    <>
+      <Sidebar className="border-r select-none">
+        {/* Sidebar Header - Exactly h-11 to align with Editor Header */}
+        <SidebarHeader className="h-11 border-b px-3.5 py-0 flex flex-row items-center justify-between">
+          <span className="text-xs font-bold tracking-wider text-muted-foreground">
+            EXPLORER
+          </span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => openCreateDialog("file")}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+              title="New File"
+            >
+              <HugeiconsIcon icon={FileAddIcon} className="size-4" />
+              <span className="sr-only">New File</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => openCreateDialog("folder")}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
+              title="New Folder"
+            >
+              <HugeiconsIcon icon={FolderAddIcon} className="size-4" />
+              <span className="sr-only">New Folder</span>
+            </Button>
+          </div>
+        </SidebarHeader>
+
+        {/* Sidebar Content with Headless Tree */}
+        <SidebarContent className="px-2 py-2 text-sm overflow-x-hidden">
+          <FileTree />
+        </SidebarContent>
+
+        <SidebarRail />
+      </Sidebar>
+
+      <CreateItemDialog />
+    </>
+  );
+}
