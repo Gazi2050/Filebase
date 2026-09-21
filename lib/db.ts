@@ -100,6 +100,14 @@ export const INITIAL_CONTENTS: Record<string, string> = {
   "file-readme": `Welcome to Filebase Workspace Explorer!\n\nThis application stores all your files and folders locally in your browser using IndexedDB.\nUse the sidebar to navigate, create files and folders, and edit text seamlessly.\n`,
 };
 
+export function formatFileName(name: string, type: ItemType): string {
+  const trimmed = name.trim();
+  if (type === "file" && !trimmed.includes(".")) {
+    return `${trimmed}.txt`;
+  }
+  return trimmed;
+}
+
 export async function initDatabase(): Promise<void> {
   const count = await db.items.count();
   if (count === 0) {
@@ -140,11 +148,12 @@ export async function addItem(
   type: ItemType,
   parentId: string
 ): Promise<WorkspaceItem> {
+  const finalName = formatFileName(name, type);
   const now = Date.now();
   const id = `${type}-${now}-${Math.random().toString(36).substring(2, 7)}`;
   const newItem: WorkspaceItem = {
     id,
-    name,
+    name: finalName,
     type,
     parentId,
     createdAt: now,
@@ -163,4 +172,30 @@ export async function addItem(
   });
 
   return newItem;
+}
+
+export async function renameItem(id: string, newName: string): Promise<void> {
+  const item = await db.items.get(id);
+  if (!item) return;
+  const finalName = formatFileName(newName, item.type);
+  await db.items.update(id, { name: finalName, updatedAt: Date.now() });
+}
+
+export async function deleteItem(id: string): Promise<void> {
+  await db.transaction("rw", db.items, db.contents, async () => {
+    const toDelete: string[] = [id];
+    let i = 0;
+    while (i < toDelete.length) {
+      const children = await db.items
+        .where("parentId")
+        .equals(toDelete[i])
+        .toArray();
+      for (const child of children) {
+        toDelete.push(child.id);
+      }
+      i++;
+    }
+    await db.contents.where("fileId").anyOf(toDelete).delete();
+    await db.items.where("id").anyOf(toDelete).delete();
+  });
 }

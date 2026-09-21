@@ -11,11 +11,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { FileTree } from "@/components/sidebar/file-tree";
-import { CreateItemDialog } from "@/components/modals/create-item-dialog";
+import { DeleteConfirmDialog } from "@/components/modals/delete-confirm-dialog";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 
 export function AppSidebar() {
-  const { openCreateDialog } = useWorkspaceStore();
+  const { startInlineCreate, clearSelection } = useWorkspaceStore();
 
   return (
     <>
@@ -29,7 +29,7 @@ export function AppSidebar() {
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={() => openCreateDialog("file")}
+              onClick={() => startInlineCreate("file")}
               className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
               title="New File"
             >
@@ -39,7 +39,7 @@ export function AppSidebar() {
             <Button
               variant="ghost"
               size="icon-xs"
-              onClick={() => openCreateDialog("folder")}
+              onClick={() => startInlineCreate("folder")}
               className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
               title="New Folder"
             >
@@ -50,14 +50,21 @@ export function AppSidebar() {
         </SidebarHeader>
 
         {/* Sidebar Content with Headless Tree */}
-        <SidebarContent className="px-2 py-2 text-sm overflow-x-hidden">
+        <SidebarContent
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              clearSelection();
+            }
+          }}
+          className="px-2 py-2 text-sm overflow-x-hidden flex-1 cursor-default"
+        >
           <FileTree />
         </SidebarContent>
 
         <SidebarRail />
       </Sidebar>
 
-      <CreateItemDialog />
+      <DeleteConfirmDialog />
     </>
   );
 }

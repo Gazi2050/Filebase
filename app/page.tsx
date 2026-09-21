@@ -52,7 +52,7 @@ function MainContent() {
     saveActiveFile,
     isSaving,
     selectItem,
-    openCreateDialog,
+    startInlineCreate,
   } = useWorkspaceStore();
 
   // Keyboard shortcuts: Ctrl+K / Cmd+K (Search), Ctrl+S / Cmd+S (Save)
@@ -238,7 +238,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                openCreateDialog("file");
+                startInlineCreate("file");
               }}
               className="cursor-pointer"
             >
@@ -249,7 +249,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                openCreateDialog("folder");
+                startInlineCreate("folder");
               }}
               className="cursor-pointer"
             >
