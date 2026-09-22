@@ -15,8 +15,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@/components/ui/input-group"
-import { HugeiconsIcon } from "@hugeicons/react"
-import { SearchIcon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { Check, Search } from "lucide-react"
 
 function Command({
   className,
@@ -26,7 +25,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden rounded-4xl bg-popover p-1 text-popover-foreground",
+        "flex size-full flex-col overflow-hidden rounded-xl bg-popover p-1 text-popover-foreground",
         className
       )}
       {...props}
@@ -56,7 +55,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-2xl! p-0 shadow-2xl",
+          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0 shadow-2xl",
           className
         )}
         showCloseButton={showCloseButton}
@@ -85,7 +84,7 @@ function CommandInput({
           {...props}
         />
         <InputGroupAddon>
-          <HugeiconsIcon icon={SearchIcon} strokeWidth={2} className="size-4 shrink-0 opacity-50" />
+          <Search className="size-4 shrink-0 opacity-50" />
         </InputGroupAddon>
       </InputGroup>
     </div>
@@ -159,13 +158,13 @@ function CommandItem({
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex cursor-default items-center gap-2 rounded-lg px-3 py-2 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-2xl data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
+        "group/command-item relative flex cursor-default items-center gap-2 rounded-sm px-3 py-2 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-md data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-selected:bg-muted data-selected:text-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 data-selected:*:[svg]:text-foreground",
         className
       )}
       {...props}
     >
       {children}
-      <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
+      <Check className="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
     </CommandPrimitive.Item>
   )
 }

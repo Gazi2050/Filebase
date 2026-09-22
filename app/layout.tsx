@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Figtree } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toast";
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -27,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={cn("h-full", "dark", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable)}
+      className={cn("h-full", "dark", "antialiased", inter.variable, jetbrainsMono.variable, "font-sans")}
     >
       <body className="min-h-full flex flex-col">
         <TooltipProvider>

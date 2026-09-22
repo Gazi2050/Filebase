@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { FileAddIcon, FolderAddIcon } from "@hugeicons/core-free-icons";
+import { FilePlus, FolderPlus } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -22,7 +21,7 @@ export function AppSidebar() {
       <Sidebar className="border-r select-none">
         {/* Sidebar Header - Exactly h-11 to align with Editor Header */}
         <SidebarHeader className="h-11 border-b px-3.5 py-0 flex flex-row items-center justify-between">
-          <span className="text-xs font-bold tracking-wider text-muted-foreground">
+          <span className="text-xs font-semibold tracking-wider text-muted-foreground">
             EXPLORER
           </span>
           <div className="flex items-center gap-1">
@@ -33,7 +32,7 @@ export function AppSidebar() {
               className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
               title="New File"
             >
-              <HugeiconsIcon icon={FileAddIcon} className="size-4" />
+              <FilePlus className="size-4" />
               <span className="sr-only">New File</span>
             </Button>
             <Button
@@ -43,7 +42,7 @@ export function AppSidebar() {
               className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer"
               title="New Folder"
             >
-              <HugeiconsIcon icon={FolderAddIcon} className="size-4" />
+              <FolderPlus className="size-4" />
               <span className="sr-only">New Folder</span>
             </Button>
           </div>

@@ -7,18 +7,17 @@ import {
   selectionFeature,
   hotkeysCoreFeature,
 } from "@headless-tree/core";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Folder01Icon,
-  FolderOpenIcon,
-  FileTextIcon,
-  ArrowRight01Icon,
-  ArrowDown01Icon,
-  FileAddIcon,
-  FolderAddIcon,
-  PencilEdit01Icon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons";
+  Folder,
+  FolderOpen,
+  FileText,
+  ChevronRight,
+  ChevronDown,
+  FilePlus,
+  FolderPlus,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -66,13 +65,11 @@ function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputProps) 
       className="flex w-full items-center gap-2 rounded-md py-1 pr-2.5 text-sm"
     >
       <span className="w-3.5 shrink-0" />
-      <HugeiconsIcon
-        icon={type === "folder" ? Folder01Icon : FileTextIcon}
-        className={cn(
-          "size-4 shrink-0",
-          type === "folder" ? "text-primary" : "text-muted-foreground"
-        )}
-      />
+      {type === "folder" ? (
+        <Folder className="size-4 shrink-0 text-primary" />
+      ) : (
+        <FileText className="size-4 shrink-0 text-muted-foreground" />
+      )}
       <input
         ref={inputRef}
         type="text"
@@ -388,22 +385,25 @@ export function FileTree() {
                     }}
                     className="flex items-center justify-center p-0.5 rounded hover:bg-accent/80 text-muted-foreground hover:text-foreground"
                   >
-                    <HugeiconsIcon
-                      icon={isExpanded ? ArrowDown01Icon : ArrowRight01Icon}
-                      className="size-3.5 shrink-0"
-                    />
+                    {isExpanded ? (
+                      <ChevronDown className="size-3.5 shrink-0" />
+                    ) : (
+                      <ChevronRight className="size-3.5 shrink-0" />
+                    )}
                   </button>
                 ) : (
                   <span className="w-3.5 shrink-0" />
                 )}
 
-                <HugeiconsIcon
-                  icon={isFolder ? (isExpanded ? FolderOpenIcon : Folder01Icon) : FileTextIcon}
-                  className={cn(
-                    "size-4 shrink-0",
-                    isFolder ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                  )}
-                />
+                {isFolder ? (
+                  isExpanded ? (
+                    <FolderOpen className="size-4 shrink-0 text-primary" />
+                  ) : (
+                    <Folder className="size-4 shrink-0 text-primary" />
+                  )
+                ) : (
+                  <FileText className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                )}
 
                 {isRenaming ? (
                   <InlineRenameInput
@@ -423,14 +423,14 @@ export function FileTree() {
                       onClick={() => startInlineCreate("file", item.getId())}
                       className="cursor-pointer"
                     >
-                      <HugeiconsIcon icon={FileAddIcon} className="size-4 mr-2" />
+                      <FilePlus className="size-4 mr-2" />
                       <span>New File</span>
                     </ContextMenuItem>
                     <ContextMenuItem
                       onClick={() => startInlineCreate("folder", item.getId())}
                       className="cursor-pointer"
                     >
-                      <HugeiconsIcon icon={FolderAddIcon} className="size-4 mr-2" />
+                      <FolderPlus className="size-4 mr-2" />
                       <span>New Folder</span>
                     </ContextMenuItem>
                     <ContextMenuSeparator />
@@ -441,7 +441,7 @@ export function FileTree() {
                   onClick={() => startRename(item.getId())}
                   className="cursor-pointer"
                 >
-                  <HugeiconsIcon icon={PencilEdit01Icon} className="size-4 mr-2" />
+                  <Pencil className="size-4 mr-2" />
                   <span>Rename</span>
                   <ContextMenuShortcut>F2</ContextMenuShortcut>
                 </ContextMenuItem>
@@ -453,7 +453,7 @@ export function FileTree() {
                   onClick={() => promptDeleteItem(item.getId())}
                   className="cursor-pointer"
                 >
-                  <HugeiconsIcon icon={Delete02Icon} className="size-4 mr-2" />
+                  <Trash2 className="size-4 mr-2" />
                   <span>Delete</span>
                   <ContextMenuShortcut>Del</ContextMenuShortcut>
                 </ContextMenuItem>
