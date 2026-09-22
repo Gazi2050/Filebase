@@ -11,11 +11,27 @@ import {
   formatFileName,
   ROOT_ITEM_ID,
   INITIAL_ITEMS,
+  WELCOME_FILE_ID,
 } from "@/lib/db";
 
 export interface InlineCreateState {
   parentId: string;
   type: ItemType;
+}
+
+/** True when another item under the same parent already uses `name` (case-insensitive). */
+function nameIsTaken(
+  items: WorkspaceItem[],
+  parentId: string | null,
+  name: string,
+  exceptId?: string
+): boolean {
+  return items.some(
+    (i) =>
+      i.id !== exceptId &&
+      i.parentId === parentId &&
+      i.name.toLowerCase() === name.toLowerCase()
+  );
 }
 
 interface WorkspaceState {
@@ -30,19 +46,11 @@ interface WorkspaceState {
   expandedItemIds: string[];
   isSaving: boolean;
 
-  // Inline creation state
   inlineCreate: InlineCreateState | null;
-
-  // Inline rename state
   renamingItemId: string | null;
-
-  // Delete confirm dialog state
   itemToDelete: WorkspaceItem | null;
-
-  // Validation/Error state
   errorMessage: string | null;
 
-  // Actions
   init: () => Promise<void>;
   setErrorMessage: (msg: string | null) => void;
   selectItem: (id: string) => Promise<void>;
@@ -50,36 +58,42 @@ interface WorkspaceState {
   revealItemInTree: (itemId: string) => void;
   clearSelection: () => void;
   setExpandedItemIds: (ids: string[]) => void;
-  toggleExpandItem: (id: string) => void;
 
-  // VS Code-style Inline Creation
+  // VS Code-style inline creation
   startInlineCreate: (type: ItemType, targetParentId?: string) => void;
   cancelInlineCreate: () => void;
   confirmInlineCreate: (name: string) => Promise<WorkspaceItem | null>;
 
-  // Inline Rename
   startRename: (id: string) => void;
   cancelRename: () => void;
   confirmRename: (id: string, newName: string) => Promise<boolean>;
 
-  // Delete
   promptDeleteItem: (id: string) => void;
   cancelDeleteItem: () => void;
   confirmDeleteItem: () => Promise<void>;
 
-  // Editor Actions
   updateActiveContent: (content: string) => void;
   saveActiveFile: () => Promise<void>;
 }
 
 let initPromise: Promise<void> | null = null;
 
-export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
+  // Persist pending edits before leaving the active file (`exceptId` keeps the
+  // current file untouched when re-selecting it).
+  const flushDirtySave = async (exceptId?: string) => {
+    const { activeFileId, activeFileContent, isDirty } = get();
+    if (activeFileId && isDirty && activeFileId !== exceptId) {
+      await saveFileContent(activeFileId, activeFileContent);
+    }
+  };
+
+  return {
   items: INITIAL_ITEMS,
   isInitialized: false,
-  selectedItemId: "file-welcome",
+  selectedItemId: WELCOME_FILE_ID,
   selectedFolderId: ROOT_ITEM_ID,
-  activeFileId: "file-welcome",
+  activeFileId: WELCOME_FILE_ID,
   activeFileContent: "",
   lastSavedContent: "",
   isDirty: false,
@@ -146,14 +160,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   selectItem: async (id: string) => {
-    const { items, activeFileId, activeFileContent, isDirty } = get();
+    const { items } = get();
     const target = items.find((i) => i.id === id);
     if (!target) return;
 
-    // Auto-save pending file edits if switching to another item
-    if (activeFileId && isDirty && activeFileId !== id) {
-      await saveFileContent(activeFileId, activeFileContent);
-    }
+    await flushDirtySave(id);
 
     get().revealItemInTree(id);
 
@@ -180,10 +191,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   openFolder: async (folderId: string) => {
-    const { activeFileId, activeFileContent, isDirty } = get();
-    if (activeFileId && isDirty) {
-      await saveFileContent(activeFileId, activeFileContent);
-    }
+    await flushDirtySave();
 
     get().revealItemInTree(folderId);
 
@@ -203,15 +211,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setExpandedItemIds: (ids: string[]) => {
     set({ expandedItemIds: ids });
-  },
-
-  toggleExpandItem: (id: string) => {
-    const { expandedItemIds } = get();
-    if (expandedItemIds.includes(id)) {
-      set({ expandedItemIds: expandedItemIds.filter((item) => item !== id) });
-    } else {
-      set({ expandedItemIds: [...expandedItemIds, id] });
-    }
   },
 
   startInlineCreate: (type: ItemType, targetParentId?: string) => {
@@ -260,12 +259,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const finalName = formatFileName(trimmed, inlineCreate.type);
 
-    // Validation: prevent duplicate name within same parent
-    const exists = items.some(
-      (item) =>
-        item.parentId === inlineCreate.parentId &&
-        item.name.toLowerCase() === finalName.toLowerCase()
-    );
+    const exists = nameIsTaken(items, inlineCreate.parentId, finalName);
     if (exists) {
       set({
         inlineCreate: null,
@@ -331,19 +325,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const finalName = formatFileName(trimmed, item.type);
 
-    // If unchanged, simply exit
     if (finalName === item.name) {
       set({ renamingItemId: null });
       return true;
     }
 
-    // Check duplicate in same parent
-    const exists = items.some(
-      (i) =>
-        i.id !== id &&
-        i.parentId === item.parentId &&
-        i.name.toLowerCase() === finalName.toLowerCase()
-    );
+    const exists = nameIsTaken(items, item.parentId, finalName, id);
     if (exists) {
       set({
         renamingItemId: null,
@@ -375,7 +362,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { itemToDelete, activeFileId, selectedItemId, selectedFolderId, items } = get();
     if (!itemToDelete) return;
 
-    // Determine all IDs that are being deleted (item and descendants)
     const deletedIds = new Set<string>([itemToDelete.id]);
     const queue = [itemToDelete.id];
     while (queue.length > 0) {
@@ -391,7 +377,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     await dbDeleteItem(itemToDelete.id);
     const updatedItems = await fetchAllItems();
 
-    // Determine parent folder to navigate to
     const fallbackFolderId = itemToDelete.parentId ?? ROOT_ITEM_ID;
 
     let nextActiveFileId = activeFileId;
@@ -453,4 +438,5 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       isDirty: false,
     });
   },
-}));
+  };
+});

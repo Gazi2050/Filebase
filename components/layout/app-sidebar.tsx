@@ -48,7 +48,6 @@ export function AppSidebar() {
           </div>
         </SidebarHeader>
 
-        {/* Sidebar Content with Headless Tree */}
         <SidebarContent
           onClick={(e) => {
             if (e.target === e.currentTarget) {

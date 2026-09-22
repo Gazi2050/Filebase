@@ -263,7 +263,6 @@ export function FileTree() {
     },
   });
 
-  // Keep tree synchronized when items or expanded items change
   React.useEffect(() => {
     if (isInitialized) {
       tree.rebuildTree();
@@ -336,7 +335,6 @@ export function FileTree() {
         const level = item.getItemMeta().level;
         const itemProps = item.getProps();
 
-        // Check if inline creation is targeting inside this folder
         const isTargetParent =
           inlineCreate !== null && inlineCreate.parentId === item.getId();
 

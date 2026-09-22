@@ -17,6 +17,7 @@ export class FilebaseDB extends Dexie {
 export const db = new FilebaseDB();
 
 export const ROOT_ITEM_ID = "root";
+export const WELCOME_FILE_ID = "file-welcome";
 
 export const INITIAL_ITEMS: WorkspaceItem[] = [
   {
@@ -28,7 +29,7 @@ export const INITIAL_ITEMS: WorkspaceItem[] = [
     updatedAt: Date.now(),
   },
   {
-    id: "file-welcome",
+    id: WELCOME_FILE_ID,
     name: "welcome.txt",
     type: "file",
     parentId: ROOT_ITEM_ID,
@@ -38,7 +39,7 @@ export const INITIAL_ITEMS: WorkspaceItem[] = [
 ];
 
 export const INITIAL_CONTENTS: Record<string, string> = {
-  "file-welcome": `Welcome to Filebase! 👋\n\nThink of this as your own personal notebook that lives right inside your browser.\nCreate folders and files in the sidebar, click any file to start writing — everything saves automatically on your device.\nNo sign-up, no accounts, nothing leaves your computer. Close the tab, come back anytime — your notes will be right here waiting.\n`,
+  [WELCOME_FILE_ID]: `Welcome to Filebase! 👋\n\nThink of this as your own personal notebook that lives right inside your browser.\nCreate folders and files in the sidebar, click any file to start writing — everything saves automatically on your device.\nNo sign-up, no accounts, nothing leaves your computer. Close the tab, come back anytime — your notes will be right here waiting.\n`,
 };
 
 export function formatFileName(name: string, type: ItemType): string {

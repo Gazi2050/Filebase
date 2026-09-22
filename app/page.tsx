@@ -130,7 +130,6 @@ function FolderView({
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6 md:p-8">
-      {/* Folder Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
         <div>
           <div className="flex items-center gap-2.5">
@@ -203,7 +202,6 @@ function FolderView({
         </div>
       </div>
 
-      {/* Empty Folder State */}
       {childrenItems.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 p-12 text-center">
           <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 mb-4">
@@ -412,7 +410,6 @@ function MainContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [saveActiveFile, activeFileId, toggleSidebar]);
 
-  // Window beforeunload listener for unsaved text-file changes
   React.useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
@@ -424,7 +421,6 @@ function MainContent() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  // Auto-dismiss errorMessage after 4.5 seconds
   React.useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => {
@@ -434,7 +430,6 @@ function MainContent() {
     }
   }, [errorMessage, setErrorMessage]);
 
-  // Compute dynamic breadcrumbs based on active file or current folder
   const itemsMap = React.useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
   const breadcrumbs = React.useMemo(() => {
@@ -493,7 +488,6 @@ function MainContent() {
 
   return (
     <SidebarInset className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* Floating Error Toast Notification */}
       {errorMessage && (
         <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 max-w-[calc(100vw-2rem)] sm:max-w-sm flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-medium text-destructive shadow-lg backdrop-blur-xs animate-in fade-in-0 slide-in-from-top-2">
           <CircleAlert className="size-4 shrink-0" />
@@ -510,7 +504,6 @@ function MainContent() {
 
       {/* Top Header: Exact same height (h-11) and border-b as Sidebar Header */}
       <header className="relative flex h-11 shrink-0 items-center justify-between border-b px-3.5 select-none bg-background">
-        {/* Left: Sidebar Toggle & Clickable Dynamic Breadcrumbs */}
         <div className="flex items-center gap-2.5 min-w-0">
           <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer" />
 
@@ -573,14 +566,12 @@ function MainContent() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* Mobile short title */}
           <span className="text-sm font-medium lg:hidden truncate max-w-[20vw] flex items-center gap-1.5">
             <span>{activeFile ? activeFile.name : currentFolder.name}</span>
             {isDirty && <span className="size-2 rounded-full bg-primary" />}
           </span>
         </div>
 
-        {/* Center: Search command trigger */}
         <button
           type="button"
           onClick={() => setOpenCommand(true)}
@@ -592,7 +583,6 @@ function MainContent() {
           <Kbd className="hidden sm:inline-flex text-[10px]">Ctrl K</Kbd>
         </button>
 
-        {/* Right: Save button */}
         <div className="flex items-center gap-2">
           {activeFileId && (
             <Button
@@ -641,7 +631,6 @@ function MainContent() {
         />
       )}
 
-      {/* Floating Command Palette Dialog */}
       <CommandDialog open={openCommand} onOpenChange={setOpenCommand}>
         <CommandInput placeholder="Type a file name or command..." />
         <CommandList>
