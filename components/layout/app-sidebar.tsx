@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { FilePlus, FolderPlus } from "lucide-react";
 import {
   Sidebar,

@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   SidebarProvider,
   SidebarInset,
@@ -35,337 +35,16 @@ import {
   PanelLeft,
   FilePlus,
   FolderPlus,
-  Pencil,
-  Trash2,
-  ChevronRight,
   CircleAlert,
 } from "lucide-react";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
+import { FolderView } from "@/components/folder/folder-view";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function InlineCardRenameInput({
-  initialValue,
-  onConfirm,
-  onCancel,
-  className,
-}: {
-  initialValue: string;
-  onConfirm: (val: string) => void;
-  onCancel: () => void;
-  className?: string;
-}) {
-  const [val, setVal] = React.useState(initialValue);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-    const dot = initialValue.lastIndexOf(".");
-    if (dot > 0 && inputRef.current) {
-      inputRef.current.setSelectionRange(0, dot);
-    } else {
-      inputRef.current?.select();
-    }
-  }, [initialValue]);
-
-  return (
-    <input
-      ref={inputRef}
-      value={val}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(e) => setVal(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          onConfirm(val);
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          e.stopPropagation();
-          onCancel();
-        }
-      }}
-      onBlur={() => {
-        if (val.trim()) onConfirm(val);
-        else onCancel();
-      }}
-      className={cn(
-        "h-6 w-full rounded border border-primary bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40",
-        className
-      )}
-    />
-  );
-}
-
-function FolderView({
-  folder,
-  childrenItems,
-  renamingItemId,
-  onOpenFolder,
-  onOpenFile,
-  onNewFile,
-  onNewFolder,
-  onRename,
-  onConfirmRename,
-  onCancelRename,
-  onDelete,
-}: {
-  folder: WorkspaceItem;
-  childrenItems: WorkspaceItem[];
-  renamingItemId: string | null;
-  onOpenFolder: (id: string) => void;
-  onOpenFile: (id: string) => void;
-  onNewFile: () => void;
-  onNewFolder: () => void;
-  onRename: (id: string) => void;
-  onConfirmRename: (id: string, name: string) => void;
-  onCancelRename: () => void;
-  onDelete: (id: string) => void;
-}) {
-  const isRoot = folder.id === ROOT_ITEM_ID;
-  const isRenamingThisFolder = renamingItemId === folder.id;
-  const childFolders = childrenItems.filter((i) => i.type === "folder");
-  const childFiles = childrenItems.filter((i) => i.type === "file");
-
-  return (
-    <div className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6 md:p-8">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Folder className="size-6 text-primary shrink-0" />
-            {isRenamingThisFolder ? (
-              <InlineCardRenameInput
-                initialValue={folder.name}
-                onConfirm={(newName) => onConfirmRename(folder.id, newName)}
-                onCancel={onCancelRename}
-                className="text-xl font-bold h-9 w-auto min-w-48"
-              />
-            ) : (
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                {folder.name}
-              </h1>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {childrenItems.length} {childrenItems.length === 1 ? "item" : "items"} in this location
-          </p>
-        </div>
-
-        {/* Quick actions for current folder — styled to match the editor header */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={onNewFile}
-            className="h-7 gap-1.5 cursor-pointer text-xs"
-          >
-            <FilePlus className="size-3.5" />
-            <span>New File</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="xs"
-            onClick={onNewFolder}
-            className="h-7 gap-1.5 cursor-pointer text-xs"
-          >
-            <FolderPlus className="size-3.5" />
-            <span>New Folder</span>
-          </Button>
-
-          {!isRoot && (
-            <>
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => onRename(folder.id)}
-                className="h-7 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
-                title="Rename folder"
-              >
-                <Pencil className="size-3.5" />
-                <span>Rename</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="xs"
-                onClick={() => onDelete(folder.id)}
-                className="h-7 gap-1.5 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                title="Delete folder"
-              >
-                <Trash2 className="size-3.5" />
-                <span>Delete</span>
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {childrenItems.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 p-12 text-center">
-          <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 mb-4">
-            <Folder className="size-6 text-muted-foreground" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">This folder is empty</h3>
-          <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-            Create a new file or folder using the <span className="font-medium text-foreground">+ buttons in the sidebar</span>.
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Folders Section */}
-          {childFolders.length > 0 && (
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Folders ({childFolders.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {childFolders.map((subfolder) => {
-                  const isRenaming = renamingItemId === subfolder.id;
-                  return (
-                    <div
-                      key={subfolder.id}
-                      onClick={() => !isRenaming && onOpenFolder(subfolder.id)}
-                      className="group relative flex items-center justify-between rounded-lg border bg-card/60 p-3.5 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                        <Folder className="size-5 shrink-0 text-primary" />
-                        <div className="min-w-0 flex-1">
-                          {isRenaming ? (
-                            <InlineCardRenameInput
-                              initialValue={subfolder.name}
-                              onConfirm={(val) => onConfirmRename(subfolder.id, val)}
-                              onCancel={onCancelRename}
-                            />
-                          ) : (
-                            <>
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {subfolder.name}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">Folder</p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {!isRenaming && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRename(subfolder.id);
-                            }}
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors"
-                            title="Rename"
-                          >
-                            <Pencil className="size-4" />
-                            <span className="sr-only">Rename</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(subfolder.id);
-                            }}
-                            className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="size-4" />
-                            <span className="sr-only">Delete</span>
-                          </button>
-                          <ChevronRight
-                            className="size-3.5 text-muted-foreground ml-1"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Files Section */}
-          {childFiles.length > 0 && (
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Files ({childFiles.length})
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {childFiles.map((file) => {
-                  const isRenaming = renamingItemId === file.id;
-                  return (
-                    <div
-                      key={file.id}
-                      onClick={() => !isRenaming && onOpenFile(file.id)}
-                      className="group relative flex items-center justify-between rounded-lg border bg-card/60 p-3.5 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-                        <FileText
-                          className="size-5 shrink-0 text-muted-foreground"
-                        />
-                        <div className="min-w-0 flex-1">
-                          {isRenaming ? (
-                            <InlineCardRenameInput
-                              initialValue={file.name}
-                              onConfirm={(val) => onConfirmRename(file.id, val)}
-                              onCancel={onCancelRename}
-                            />
-                          ) : (
-                            <>
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {file.name}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground font-mono">
-                                {file.name.split(".").pop()?.toUpperCase() || "TXT"} File
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {!isRenaming && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRename(file.id);
-                            }}
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors"
-                            title="Rename"
-                          >
-                            <Pencil className="size-4" />
-                            <span className="sr-only">Rename</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(file.id);
-                            }}
-                            className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="size-4" />
-                            <span className="sr-only">Delete</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MainContent() {
-  const [openCommand, setOpenCommand] = React.useState(false);
+  const [openCommand, setOpenCommand] = useState(false);
   const { toggleSidebar, isMobile, setOpenMobile: openSidebarOverlay } = useSidebar();
   const {
     items,
@@ -379,17 +58,12 @@ function MainContent() {
     selectItem,
     openFolder,
     startInlineCreate,
-    startRename,
-    cancelRename,
-    confirmRename,
-    renamingItemId,
-    promptDeleteItem,
     errorMessage,
     setErrorMessage,
   } = useWorkspaceStore();
 
   // Keyboard shortcuts: Ctrl+K (Search), Ctrl+S (Save), Ctrl+B (Toggle Sidebar)
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -410,7 +84,7 @@ function MainContent() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [saveActiveFile, activeFileId, toggleSidebar]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
@@ -421,7 +95,7 @@ function MainContent() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => {
         setErrorMessage(null);
@@ -430,9 +104,9 @@ function MainContent() {
     }
   }, [errorMessage, setErrorMessage]);
 
-  const itemsMap = React.useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const itemsMap = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
 
-  const breadcrumbs = React.useMemo(() => {
+  const breadcrumbs = useMemo(() => {
     const targetId = activeFileId || selectedFolderId || ROOT_ITEM_ID;
     const crumbs: WorkspaceItem[] = [];
     let currentId: string | null = targetId;
@@ -446,7 +120,7 @@ function MainContent() {
     return crumbs;
   }, [itemsMap, activeFileId, selectedFolderId]);
 
-  const currentFolder = React.useMemo(() => {
+  const currentFolder = useMemo(() => {
     return itemsMap.get(selectedFolderId) || itemsMap.get(ROOT_ITEM_ID) || {
       id: ROOT_ITEM_ID,
       name: "Workspace",
@@ -457,24 +131,15 @@ function MainContent() {
     };
   }, [itemsMap, selectedFolderId]);
 
-  const currentFolderChildren = React.useMemo(() => {
-    return items
-      .filter((i) => i.parentId === currentFolder.id)
-      .sort((a, b) => {
-        if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-      });
-  }, [items, currentFolder.id]);
-
-  const activeFile = React.useMemo(() => {
+  const activeFile = useMemo(() => {
     return activeFileId ? itemsMap.get(activeFileId) : null;
   }, [itemsMap, activeFileId]);
 
-  const fileItems = React.useMemo(
+  const fileItems = useMemo(
     () => items.filter((i) => i.type === "file"),
     [items]
   );
-  const folderItems = React.useMemo(
+  const folderItems = useMemo(
     () => items.filter((i) => i.type === "folder" && i.id !== ROOT_ITEM_ID),
     [items]
   );
@@ -531,7 +196,7 @@ function MainContent() {
               {breadcrumbs.map((crumb, idx) => {
                 const isLast = idx === breadcrumbs.length - 1;
                 return (
-                  <React.Fragment key={crumb.id}>
+                  <Fragment key={crumb.id}>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       {isLast ? (
@@ -560,7 +225,7 @@ function MainContent() {
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
-                  </React.Fragment>
+                  </Fragment>
                 );
               })}
             </BreadcrumbList>
@@ -616,19 +281,7 @@ function MainContent() {
           />
         </div>
       ) : (
-        <FolderView
-          folder={currentFolder}
-          childrenItems={currentFolderChildren}
-          renamingItemId={renamingItemId}
-          onOpenFolder={(folderId) => openFolder(folderId)}
-          onOpenFile={(fileId) => selectItem(fileId)}
-          onNewFile={() => startCreate("file")}
-          onNewFolder={() => startCreate("folder")}
-          onRename={(id) => startRename(id)}
-          onConfirmRename={(id, name) => confirmRename(id, name)}
-          onCancelRename={() => cancelRename()}
-          onDelete={(id) => promptDeleteItem(id)}
-        />
+        <FolderView folder={currentFolder} />
       )}
 
       <CommandDialog open={openCommand} onOpenChange={setOpenCommand}>

@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { Fragment, useEffect, useMemo, type KeyboardEvent } from "react";
 import { useTree } from "@headless-tree/react";
 import {
   syncDataLoaderFeature,
@@ -27,6 +27,8 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
+import { compareWorkspaceItems } from "@/lib/items";
+import { useInlineName } from "@/hooks/use-inline-name";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem, ItemType } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -39,25 +41,11 @@ interface InlineInputProps {
 }
 
 function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputProps) {
-  const [val, setVal] = React.useState("");
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-      onConfirm(val);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    }
-  };
+  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
+    "",
+    onConfirm,
+    onCancel
+  );
 
   return (
     <div
@@ -73,16 +61,10 @@ function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputProps) 
       <input
         ref={inputRef}
         type="text"
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKeyDown}
-        onBlur={() => {
-          if (val.trim()) {
-            onConfirm(val);
-          } else {
-            onCancel();
-          }
-        }}
+        onBlur={handleBlur}
         placeholder={type === "file" ? "filename (.txt)" : "folder name"}
         className="h-6 flex-1 min-w-0 rounded border border-primary/60 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40 selection:bg-primary/20"
       />
@@ -97,47 +79,21 @@ interface InlineRenameProps {
 }
 
 function InlineRenameInput({ initialValue, onConfirm, onCancel }: InlineRenameProps) {
-  const [val, setVal] = React.useState(initialValue);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-    // Select base filename before extension for better UX
-    const dotIndex = initialValue.lastIndexOf(".");
-    if (dotIndex > 0 && inputRef.current) {
-      inputRef.current.setSelectionRange(0, dotIndex);
-    } else {
-      inputRef.current?.select();
-    }
-  }, [initialValue]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-      onConfirm(val);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    }
-  };
+  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
+    initialValue,
+    onConfirm,
+    onCancel
+  );
 
   return (
     <input
       ref={inputRef}
       type="text"
-      value={val}
+      value={value}
       onClick={(e) => e.stopPropagation()}
-      onChange={(e) => setVal(e.target.value)}
+      onChange={(e) => setValue(e.target.value)}
       onKeyDown={handleKeyDown}
-      onBlur={() => {
-        if (val.trim()) {
-          onConfirm(val);
-        } else {
-          onCancel();
-        }
-      }}
+      onBlur={handleBlur}
       className="h-6 flex-1 min-w-0 rounded border border-primary/60 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40 selection:bg-primary/20"
     />
   );
@@ -166,11 +122,11 @@ export function FileTree() {
     clearSelection,
   } = useWorkspaceStore();
 
-  React.useEffect(() => {
+  useEffect(() => {
     init();
   }, [init]);
 
-  const itemsMap = React.useMemo(() => {
+  const itemsMap = useMemo(() => {
     const map = new Map<string, WorkspaceItem>();
     for (const item of items) {
       map.set(item.id, item);
@@ -178,7 +134,7 @@ export function FileTree() {
     return map;
   }, [items]);
 
-  const childrenMap = React.useMemo(() => {
+  const childrenMap = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const item of items) {
       if (item.parentId) {
@@ -194,10 +150,7 @@ export function FileTree() {
         const itemA = itemsMap.get(a);
         const itemB = itemsMap.get(b);
         if (!itemA || !itemB) return 0;
-        if (itemA.type !== itemB.type) {
-          return itemA.type === "folder" ? -1 : 1;
-        }
-        return itemA.name.localeCompare(itemB.name, undefined, { sensitivity: "base" });
+        return compareWorkspaceItems(itemA, itemB);
       });
     }
     return map;
@@ -263,14 +216,14 @@ export function FileTree() {
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isInitialized) {
       tree.rebuildTree();
     }
   }, [items, expandedItemIds, isInitialized, tree]);
 
   // Handle tree-level keyboard shortcuts (F2 rename, Delete key)
-  const handleTreeKeyDown = (e: React.KeyboardEvent) => {
+  const handleTreeKeyDown = (e: KeyboardEvent) => {
     if (renamingItemId || inlineCreate) return;
 
     if (e.key === "F2" && selectedItemId) {
@@ -339,7 +292,7 @@ export function FileTree() {
           inlineCreate !== null && inlineCreate.parentId === item.getId();
 
         return (
-          <React.Fragment key={item.getId()}>
+          <Fragment key={item.getId()}>
             <ContextMenu>
               <ContextMenuTrigger
                 render={
@@ -467,7 +420,7 @@ export function FileTree() {
                 onCancel={cancelInlineCreate}
               />
             )}
-          </React.Fragment>
+          </Fragment>
         );
       })}
 
