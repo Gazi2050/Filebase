@@ -130,7 +130,7 @@ function FolderView({
   const childFiles = childrenItems.filter((i) => i.type === "file");
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto p-6 md:p-8">
+    <div className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6 md:p-8">
       {/* Folder Header */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
         <div>
@@ -367,7 +367,7 @@ function FolderView({
 
 function MainContent() {
   const [openCommand, setOpenCommand] = React.useState(false);
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, setOpenMobile: openSidebarOverlay } = useSidebar();
   const {
     items,
     activeFileId,
@@ -483,11 +483,18 @@ function MainContent() {
     [items]
   );
 
+  // On mobile the inline create input lives in the sidebar overlay — open it
+  // so the input is actually visible when creating from the header/palette.
+  const startCreate = (type: "file" | "folder") => {
+    if (isMobile) openSidebarOverlay(true);
+    startInlineCreate(type, currentFolder.id);
+  };
+
   return (
     <SidebarInset className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Floating Error Toast Notification */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-medium text-destructive shadow-lg backdrop-blur-xs animate-in fade-in-0 slide-in-from-top-2">
+        <div className="fixed top-4 right-4 left-4 sm:left-auto z-50 max-w-[calc(100vw-2rem)] sm:max-w-sm flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs font-medium text-destructive shadow-lg backdrop-blur-xs animate-in fade-in-0 slide-in-from-top-2">
           <HugeiconsIcon icon={Alert02Icon} className="size-4 shrink-0" />
           <span>{errorMessage}</span>
           <button
@@ -506,7 +513,10 @@ function MainContent() {
         <div className="flex items-center gap-2.5 min-w-0">
           <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer" />
 
-          <Breadcrumb className="hidden sm:block">
+          <Breadcrumb
+            className="hidden lg:block flex-nowrap overflow-hidden whitespace-nowrap"
+            style={{ maxWidth: "min(32vw, 360px)" }}
+          >
             <BreadcrumbList>
               <BreadcrumbItem>
                 {activeFileId || (selectedFolderId && selectedFolderId !== ROOT_ITEM_ID) ? (
@@ -563,7 +573,7 @@ function MainContent() {
           </Breadcrumb>
 
           {/* Mobile short title */}
-          <span className="text-sm font-medium sm:hidden truncate flex items-center gap-1.5">
+          <span className="text-sm font-medium lg:hidden truncate max-w-[20vw] flex items-center gap-1.5">
             <span>{activeFile ? activeFile.name : currentFolder.name}</span>
             {isDirty && <span className="size-2 rounded-full bg-primary" />}
           </span>
@@ -573,11 +583,12 @@ function MainContent() {
         <button
           type="button"
           onClick={() => setOpenCommand(true)}
-          className="absolute left-1/2 top-1/2 z-10 flex h-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer sm:w-64"
+          className="absolute left-1/2 top-1/2 z-10 flex h-8 sm:h-7 w-[30vw] max-w-[150px] sm:max-w-none sm:w-48 xl:w-64 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 rounded-full sm:rounded-md border bg-muted/30 px-3 sm:px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
         >
-          <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
+          <HugeiconsIcon icon={Search01Icon} className="size-3.5 shrink-0" />
+          <span className="sm:hidden">Search</span>
           <span className="hidden sm:inline">Search...</span>
-          <Kbd className="text-[10px]">Ctrl K</Kbd>
+          <Kbd className="hidden sm:inline-flex text-[10px]">Ctrl K</Kbd>
         </button>
 
         {/* Right: Save button */}
@@ -604,7 +615,7 @@ function MainContent() {
 
       {/* Main Panel Canvas: Dual-Mode (Editor vs Folder View) */}
       {activeFileId ? (
-        <div className="flex flex-1 overflow-auto p-6">
+        <div className="flex flex-1 overflow-auto p-3 sm:p-6">
           <textarea
             value={activeFileContent}
             onChange={(e) => updateActiveContent(e.target.value)}
@@ -620,8 +631,8 @@ function MainContent() {
           renamingItemId={renamingItemId}
           onOpenFolder={(folderId) => openFolder(folderId)}
           onOpenFile={(fileId) => selectItem(fileId)}
-          onNewFile={() => startInlineCreate("file", currentFolder.id)}
-          onNewFolder={() => startInlineCreate("folder", currentFolder.id)}
+          onNewFile={() => startCreate("file")}
+          onNewFolder={() => startCreate("folder")}
           onRename={(id) => startRename(id)}
           onConfirmRename={(id, name) => confirmRename(id, name)}
           onCancelRename={() => cancelRename()}
@@ -678,7 +689,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                startInlineCreate("file", currentFolder.id);
+                startCreate("file");
               }}
               className="cursor-pointer"
             >
@@ -689,7 +700,7 @@ function MainContent() {
             <CommandItem
               onSelect={() => {
                 setOpenCommand(false);
-                startInlineCreate("folder", currentFolder.id);
+                startCreate("folder");
               }}
               className="cursor-pointer"
             >
