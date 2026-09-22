@@ -153,6 +153,8 @@ export function FileTree() {
     init,
     selectedItemId,
     selectItem,
+    activeFileId,
+    selectedFolderId,
     expandedItemIds,
     setExpandedItemIds,
     inlineCreate,
@@ -325,7 +327,15 @@ export function FileTree() {
         const isFolder = item.isFolder();
         const isExpanded = item.isExpanded();
         const isSelected = selectedItemId === item.getId();
-        const isRenaming = renamingItemId === item.getId();
+        // ponytail: only ONE rename input may exist at a time. The tree suppresses
+        // its input when the main panel renders one for this item (folder view),
+        // because the focus handoff made the loser's blur cancel the rename.
+        const mainPanelRendersRename =
+          activeFileId === null &&
+          (item.getId() === selectedFolderId ||
+            itemsMap.get(item.getId())?.parentId === selectedFolderId);
+        const isRenaming =
+          renamingItemId === item.getId() && !mainPanelRendersRename;
         const level = item.getItemMeta().level;
         const itemProps = item.getProps();
 

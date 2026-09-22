@@ -41,7 +41,7 @@ import {
   ArrowRight01Icon,
   Alert02Icon,
 } from "@hugeicons/core-free-icons";
-import { useWorkspaceStore, type InlineCreateState } from "@/lib/store/use-workspace-store";
+import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -99,61 +99,9 @@ function InlineCardRenameInput({
   );
 }
 
-function InlineCreateCard({
-  type,
-  onConfirm,
-  onCancel,
-}: {
-  type: "folder" | "file";
-  onConfirm: (val: string) => void;
-  onCancel: () => void;
-}) {
-  const [val, setVal] = React.useState("");
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg border-2 border-primary/60 bg-card p-3 shadow-xs">
-      <HugeiconsIcon
-        icon={type === "folder" ? Folder01Icon : FileTextIcon}
-        className={cn(
-          "size-5 shrink-0",
-          type === "folder" ? "text-primary" : "text-muted-foreground"
-        )}
-      />
-      <input
-        ref={inputRef}
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            onConfirm(val);
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            e.stopPropagation();
-            onCancel();
-          }
-        }}
-        onBlur={() => {
-          if (val.trim()) onConfirm(val);
-          else onCancel();
-        }}
-        placeholder={type === "file" ? "filename (.txt)" : "folder name"}
-        className="h-6 flex-1 min-w-0 rounded border border-primary/50 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40"
-      />
-    </div>
-  );
-}
-
 function FolderView({
   folder,
   childrenItems,
-  inlineCreate,
   renamingItemId,
   onOpenFolder,
   onOpenFile,
@@ -162,14 +110,10 @@ function FolderView({
   onRename,
   onConfirmRename,
   onCancelRename,
-  onConfirmCreate,
-  onCancelCreate,
   onDelete,
-  onOpenSearch,
 }: {
   folder: WorkspaceItem;
   childrenItems: WorkspaceItem[];
-  inlineCreate: InlineCreateState | null;
   renamingItemId: string | null;
   onOpenFolder: (id: string) => void;
   onOpenFile: (id: string) => void;
@@ -178,18 +122,12 @@ function FolderView({
   onRename: (id: string) => void;
   onConfirmRename: (id: string, name: string) => void;
   onCancelRename: () => void;
-  onConfirmCreate: (name: string) => void;
-  onCancelCreate: () => void;
   onDelete: (id: string) => void;
-  onOpenSearch: () => void;
 }) {
   const isRoot = folder.id === ROOT_ITEM_ID;
   const isRenamingThisFolder = renamingItemId === folder.id;
-
   const childFolders = childrenItems.filter((i) => i.type === "folder");
   const childFiles = childrenItems.filter((i) => i.type === "file");
-
-  const isCreatingHere = inlineCreate !== null && inlineCreate.parentId === folder.id;
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto p-6 md:p-8">
@@ -216,13 +154,13 @@ function FolderView({
           </p>
         </div>
 
-        {/* Quick actions for current folder */}
+        {/* Quick actions for current folder — styled to match the editor header */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="xs"
             onClick={onNewFile}
-            className="h-8 gap-1.5 cursor-pointer text-xs"
+            className="h-7 gap-1.5 cursor-pointer text-xs"
           >
             <HugeiconsIcon icon={FileAddIcon} className="size-3.5" />
             <span>New File</span>
@@ -232,20 +170,10 @@ function FolderView({
             variant="outline"
             size="xs"
             onClick={onNewFolder}
-            className="h-8 gap-1.5 cursor-pointer text-xs"
+            className="h-7 gap-1.5 cursor-pointer text-xs"
           >
             <HugeiconsIcon icon={FolderAddIcon} className="size-3.5" />
             <span>New Folder</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={onOpenSearch}
-            className="h-8 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
-          >
-            <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
-            <span>Search</span>
           </Button>
 
           {!isRoot && (
@@ -254,7 +182,7 @@ function FolderView({
                 variant="ghost"
                 size="xs"
                 onClick={() => onRename(folder.id)}
-                className="h-8 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
+                className="h-7 gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground"
                 title="Rename folder"
               >
                 <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
@@ -265,7 +193,7 @@ function FolderView({
                 variant="ghost"
                 size="xs"
                 onClick={() => onDelete(folder.id)}
-                className="h-8 gap-1.5 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-7 gap-1.5 cursor-pointer text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                 title="Delete folder"
               >
                 <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
@@ -277,49 +205,25 @@ function FolderView({
       </div>
 
       {/* Empty Folder State */}
-      {childrenItems.length === 0 && !isCreatingHere ? (
+      {childrenItems.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-muted-foreground/25 p-12 text-center">
           <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 mb-4">
             <HugeiconsIcon icon={Folder01Icon} className="size-6 text-muted-foreground" />
           </div>
           <h3 className="text-sm font-semibold text-foreground">This folder is empty</h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-            Get started by creating a new text document or folder inside{" "}
-            <span className="font-medium text-foreground">{folder.name}</span>.
+            Create a new file or folder using the <span className="font-medium text-foreground">+ buttons in the sidebar</span>.
           </p>
-          <div className="mt-6 flex items-center gap-2">
-            <Button size="xs" onClick={onNewFile} className="gap-1.5 cursor-pointer">
-              <HugeiconsIcon icon={FileAddIcon} className="size-3.5" />
-              <span>Create File</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={onNewFolder}
-              className="gap-1.5 cursor-pointer"
-            >
-              <HugeiconsIcon icon={FolderAddIcon} className="size-3.5" />
-              <span>Create Folder</span>
-            </Button>
-          </div>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Folders Section */}
-          {(childFolders.length > 0 || (isCreatingHere && inlineCreate.type === "folder")) && (
+          {childFolders.length > 0 && (
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Folders ({childFolders.length + (isCreatingHere && inlineCreate.type === "folder" ? 1 : 0)})
+                Folders ({childFolders.length})
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {isCreatingHere && inlineCreate.type === "folder" && (
-                  <InlineCreateCard
-                    type="folder"
-                    onConfirm={onConfirmCreate}
-                    onCancel={onCancelCreate}
-                  />
-                )}
-
                 {childFolders.map((subfolder) => {
                   const isRenaming = renamingItemId === subfolder.id;
                   return (
@@ -355,7 +259,7 @@ function FolderView({
                               e.stopPropagation();
                               onRename(subfolder.id);
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                             title="Rename"
                           >
                             <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
@@ -366,7 +270,7 @@ function FolderView({
                               e.stopPropagation();
                               onDelete(subfolder.id);
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                             title="Delete"
                           >
                             <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
@@ -385,20 +289,12 @@ function FolderView({
           )}
 
           {/* Files Section */}
-          {(childFiles.length > 0 || (isCreatingHere && inlineCreate.type === "file")) && (
+          {childFiles.length > 0 && (
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Files ({childFiles.length + (isCreatingHere && inlineCreate.type === "file" ? 1 : 0)})
+                Files ({childFiles.length})
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {isCreatingHere && inlineCreate.type === "file" && (
-                  <InlineCreateCard
-                    type="file"
-                    onConfirm={onConfirmCreate}
-                    onCancel={onCancelCreate}
-                  />
-                )}
-
                 {childFiles.map((file) => {
                   const isRenaming = renamingItemId === file.id;
                   return (
@@ -439,7 +335,7 @@ function FolderView({
                               e.stopPropagation();
                               onRename(file.id);
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
                             title="Rename"
                           >
                             <HugeiconsIcon icon={PencilEdit01Icon} className="size-3.5" />
@@ -450,7 +346,7 @@ function FolderView({
                               e.stopPropagation();
                               onDelete(file.id);
                             }}
-                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer"
                             title="Delete"
                           >
                             <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
@@ -484,9 +380,6 @@ function MainContent() {
     selectItem,
     openFolder,
     startInlineCreate,
-    cancelInlineCreate,
-    confirmInlineCreate,
-    inlineCreate,
     startRename,
     cancelRename,
     confirmRename,
@@ -496,7 +389,7 @@ function MainContent() {
     setErrorMessage,
   } = useWorkspaceStore();
 
-  // Keyboard shortcuts: Ctrl+K / Cmd+K (Search), Ctrl+S / Cmd+S (Save)
+  // Keyboard shortcuts: Ctrl+K (Search), Ctrl+S (Save), Ctrl+B (Toggle Sidebar)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -509,10 +402,14 @@ function MainContent() {
           saveActiveFile();
         }
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [saveActiveFile, activeFileId]);
+  }, [saveActiveFile, activeFileId, toggleSidebar]);
 
   // Window beforeunload listener for unsaved text-file changes
   React.useEffect(() => {
@@ -604,7 +501,7 @@ function MainContent() {
       )}
 
       {/* Top Header: Exact same height (h-11) and border-b as Sidebar Header */}
-      <header className="flex h-11 shrink-0 items-center justify-between border-b px-3.5 select-none bg-background">
+      <header className="relative flex h-11 shrink-0 items-center justify-between border-b px-3.5 select-none bg-background">
         {/* Left: Sidebar Toggle & Clickable Dynamic Breadcrumbs */}
         <div className="flex items-center gap-2.5 min-w-0">
           <SidebarTrigger className="h-7 w-7 text-muted-foreground hover:text-foreground cursor-pointer" />
@@ -672,18 +569,19 @@ function MainContent() {
           </span>
         </div>
 
-        {/* Right: Search command trigger & Save button */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setOpenCommand(true)}
-            className="flex h-7 items-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
-          >
-            <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
-            <span className="hidden sm:inline">Search...</span>
-            <Kbd className="text-[10px]">Ctrl K</Kbd>
-          </button>
+        {/* Center: Search command trigger */}
+        <button
+          type="button"
+          onClick={() => setOpenCommand(true)}
+          className="absolute left-1/2 top-1/2 z-10 flex h-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 rounded-md border bg-muted/30 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer sm:w-64"
+        >
+          <HugeiconsIcon icon={Search01Icon} className="size-3.5" />
+          <span className="hidden sm:inline">Search...</span>
+          <Kbd className="text-[10px]">Ctrl K</Kbd>
+        </button>
 
+        {/* Right: Save button */}
+        <div className="flex items-center gap-2">
           {activeFileId && (
             <Button
               variant={isDirty ? "default" : "outline"}
@@ -719,7 +617,6 @@ function MainContent() {
         <FolderView
           folder={currentFolder}
           childrenItems={currentFolderChildren}
-          inlineCreate={inlineCreate}
           renamingItemId={renamingItemId}
           onOpenFolder={(folderId) => openFolder(folderId)}
           onOpenFile={(fileId) => selectItem(fileId)}
@@ -728,10 +625,7 @@ function MainContent() {
           onRename={(id) => startRename(id)}
           onConfirmRename={(id, name) => confirmRename(id, name)}
           onCancelRename={() => cancelRename()}
-          onConfirmCreate={(name) => confirmInlineCreate(name)}
-          onCancelCreate={() => cancelInlineCreate()}
           onDelete={(id) => promptDeleteItem(id)}
-          onOpenSearch={() => setOpenCommand(true)}
         />
       )}
 

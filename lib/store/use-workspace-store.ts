@@ -72,16 +72,18 @@ interface WorkspaceState {
   saveActiveFile: () => Promise<void>;
 }
 
+let initPromise: Promise<void> | null = null;
+
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   items: INITIAL_ITEMS,
   isInitialized: false,
-  selectedItemId: "file-notes",
-  selectedFolderId: "folder-webbly",
-  activeFileId: "file-notes",
+  selectedItemId: "file-welcome",
+  selectedFolderId: ROOT_ITEM_ID,
+  activeFileId: "file-welcome",
   activeFileContent: "",
   lastSavedContent: "",
   isDirty: false,
-  expandedItemIds: [ROOT_ITEM_ID, "folder-projects", "folder-webbly"],
+  expandedItemIds: [ROOT_ITEM_ID],
   isSaving: false,
 
   inlineCreate: null,
@@ -93,25 +95,36 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     set({ errorMessage: msg });
   },
 
+  // ponytail: single-flight init — StrictMode/double-mount used to run seeding
+  // twice, and the second bulkAdd failed with BulkError (empty first visit).
+  // Upgrade path: move seeding into a Dexie on("populate") hook.
   init: async () => {
     if (get().isInitialized) return;
-    await initDatabase();
-    const items = await fetchAllItems();
-    const activeFileId = get().activeFileId || "file-notes";
-    const content = await fetchFileContent(activeFileId);
-    const activeItem = items.find((i) => i.id === activeFileId);
-    const selectedFolderId = activeItem?.parentId ?? ROOT_ITEM_ID;
+    initPromise ??= (async () => {
+      await initDatabase();
+      const items = await fetchAllItems();
+      // Validate persisted default against real items — a deleted file must not
+      // come back as a phantom empty editor after refresh.
+      const wanted = get().activeFileId;
+      const activeFileId = items.some((i) => i.id === wanted)
+        ? wanted
+        : items.find((i) => i.type === "file")?.id ?? null;
+      const content = activeFileId ? await fetchFileContent(activeFileId) : "";
+      const activeItem = items.find((i) => i.id === activeFileId);
+      const selectedFolderId = activeItem?.parentId ?? ROOT_ITEM_ID;
 
-    set({
-      items,
-      isInitialized: true,
-      activeFileId,
-      selectedItemId: activeFileId,
-      selectedFolderId,
-      activeFileContent: content,
-      lastSavedContent: content,
-      isDirty: false,
-    });
+      set({
+        items,
+        isInitialized: true,
+        activeFileId,
+        selectedItemId: activeFileId,
+        selectedFolderId,
+        activeFileContent: content,
+        lastSavedContent: content,
+        isDirty: false,
+      });
+    })();
+    await initPromise;
   },
 
   revealItemInTree: (itemId: string) => {

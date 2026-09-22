@@ -28,64 +28,8 @@ export const INITIAL_ITEMS: WorkspaceItem[] = [
     updatedAt: Date.now(),
   },
   {
-    id: "folder-projects",
-    name: "Projects",
-    type: "folder",
-    parentId: ROOT_ITEM_ID,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "folder-webbly",
-    name: "Webbly",
-    type: "folder",
-    parentId: "folder-projects",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "file-notes",
-    name: "notes.txt",
-    type: "file",
-    parentId: "folder-webbly",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "file-tasks",
-    name: "tasks.txt",
-    type: "file",
-    parentId: "folder-webbly",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "folder-personal",
-    name: "Personal",
-    type: "folder",
-    parentId: "folder-projects",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "folder-docs",
-    name: "Documents",
-    type: "folder",
-    parentId: ROOT_ITEM_ID,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "file-web-notes",
-    name: "web-notes.txt",
-    type: "file",
-    parentId: "folder-docs",
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: "file-readme",
-    name: "README.txt",
+    id: "file-welcome",
+    name: "welcome.txt",
     type: "file",
     parentId: ROOT_ITEM_ID,
     createdAt: Date.now(),
@@ -94,10 +38,7 @@ export const INITIAL_ITEMS: WorkspaceItem[] = [
 ];
 
 export const INITIAL_CONTENTS: Record<string, string> = {
-  "file-notes": `Webbly kickoff notes\n\n- Goal: Ship the Mini Workspace Explorer\n- Stack: Next.js, React, TypeScript, Zustand, Headless Tree, Dexie.js\n- Status: Real Headless Tree and Dexie persistence active\n`,
-  "file-tasks": `Upcoming tasks:\n\n[x] Initialize clean layout\n[x] Connect Dexie.js local database\n[x] Implement Headless Tree explorer\n[ ] Add drag and drop support\n[ ] Connect search indexing\n`,
-  "file-web-notes": `Reference Documentation:\n\n- Headless Tree: useTree with syncDataLoaderFeature\n- Tailwind CSS v4\n- Shadcn UI components\n`,
-  "file-readme": `Welcome to Filebase Workspace Explorer!\n\nThis application stores all your files and folders locally in your browser using IndexedDB.\nUse the sidebar to navigate, create files and folders, and edit text seamlessly.\n`,
+  "file-welcome": `Welcome to Filebase! 👋\n\nThink of this as your own personal notebook that lives right inside your browser.\nCreate folders and files in the sidebar, click any file to start writing — everything saves automatically on your device.\nNo sign-up, no accounts, nothing leaves your computer. Close the tab, come back anytime — your notes will be right here waiting.\n`,
 };
 
 export function formatFileName(name: string, type: ItemType): string {
