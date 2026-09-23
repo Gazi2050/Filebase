@@ -45,8 +45,6 @@ import { useBeforeUnloadGuard } from "@/hooks/use-before-unload-guard";
 import type { WorkspaceItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-// ─── EditorHeader ─────────────────────────────────────────────────────────────
-
 interface EditorHeaderProps {
   activeFileId: string | null;
   activeFile: WorkspaceItem | undefined | null;
@@ -74,7 +72,8 @@ function EditorHeader({
   onOpenFolder,
   onSelectItem,
 }: EditorHeaderProps) {
-  const isAtRoot = !activeFileId && (!selectedFolderId || selectedFolderId === ROOT_ITEM_ID);
+  const isAtRoot =
+    !activeFileId && (!selectedFolderId || selectedFolderId === ROOT_ITEM_ID);
 
   return (
     <header className="relative flex h-11 shrink-0 items-center justify-between border-b px-3.5 select-none bg-background">
@@ -177,8 +176,6 @@ function EditorHeader({
     </header>
   );
 }
-
-// ─── CommandPalette ───────────────────────────────────────────────────────────
 
 interface CommandPaletteProps {
   open: boolean;
@@ -285,11 +282,13 @@ function CommandPalette({
   );
 }
 
-// ─── MainContent ──────────────────────────────────────────────────────────────
-
 function MainContent() {
   const [openCommand, setOpenCommand] = useState(false);
-  const { toggleSidebar, isMobile, setOpenMobile: openSidebarOverlay } = useSidebar();
+  const {
+    toggleSidebar,
+    isMobile,
+    setOpenMobile: openSidebarOverlay,
+  } = useSidebar();
   const {
     items,
     activeFileId,
@@ -357,7 +356,10 @@ function MainContent() {
     [itemsMap, activeFileId]
   );
 
-  const fileItems = useMemo(() => items.filter((i) => i.type === "file"), [items]);
+  const fileItems = useMemo(
+    () => items.filter((i) => i.type === "file"),
+    [items]
+  );
   const folderItems = useMemo(
     () => items.filter((i) => i.type === "folder" && i.id !== ROOT_ITEM_ID),
     [items]
@@ -426,8 +428,6 @@ function MainContent() {
     </SidebarInset>
   );
 }
-
-// ─── Home (root export) ───────────────────────────────────────────────────────
 
 export default function Home() {
   return (

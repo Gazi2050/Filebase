@@ -1,10 +1,5 @@
 import { useEffect } from "react";
 
-/**
- * Wires up Ctrl/Cmd+K (command palette), Ctrl/Cmd+S (save), Ctrl/Cmd+B
- * (sidebar) on the window. Each callback is expected to be stable
- * (e.g. wrapped in useCallback or sourced from a Zustand store).
- */
 export function useKeyboardShortcuts({
   onSearch,
   onSave,

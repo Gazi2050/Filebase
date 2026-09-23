@@ -48,9 +48,6 @@
   --radius-4xl: 2rem;
 }
 
-/* Dark-only palette. Floor #0a0a0a, cards #171717, elevated #1a1a1a.
-   Primary inverts to white on dark. Muted text #b0b4ba. Destructive brightened for dark contrast.
-   Borders are white washes (oklch alpha). */
 :root {
   --background: #0a0a0a;
   --foreground: #ffffff;

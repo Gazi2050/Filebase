@@ -20,11 +20,8 @@ export function InlineNameInput({
   className,
   stopClickPropagation,
 }: InlineNameInputProps) {
-  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
-    initialValue,
-    onConfirm,
-    onCancel
-  );
+  const { value, setValue, inputRef, handleKeyDown, handleBlur } =
+    useInlineName(initialValue, onConfirm, onCancel);
 
   return (
     <input

@@ -1,10 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-/**
- * Shared behavior for the inline file/folder name inputs: autofocus, select the
- * base name (before the extension) when renaming, Enter confirms, Escape
- * cancels, blur confirms non-empty values.
- */
 export function useInlineName(
   initialValue: string,
   onConfirm: (name: string) => void,

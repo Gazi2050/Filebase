@@ -19,7 +19,6 @@ export interface InlineCreateState {
   type: ItemType;
 }
 
-/** True when another item under the same parent already uses `name` (case-insensitive). */
 function nameIsTaken(
   items: WorkspaceItem[],
   parentId: string | null,
@@ -34,7 +33,6 @@ function nameIsTaken(
   );
 }
 
-/** Adds `id` to the expanded list if it isn't already there. */
 function ensureExpanded(ids: string[], id: string): string[] {
   return ids.includes(id) ? ids : [...ids, id];
 }
@@ -64,7 +62,6 @@ interface WorkspaceState {
   clearSelection: () => void;
   setExpandedItemIds: (ids: string[]) => void;
 
-  // VS Code-style inline creation
   startInlineCreate: (type: ItemType, targetParentId?: string) => void;
   cancelInlineCreate: () => void;
   confirmInlineCreate: (name: string) => Promise<WorkspaceItem | null>;
@@ -84,8 +81,6 @@ interface WorkspaceState {
 let initPromise: Promise<void> | null = null;
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
-  // Persist pending edits before leaving the active file (`exceptId` keeps the
-  // current file untouched when re-selecting it).
   const flushDirtySave = async (exceptId?: string) => {
     const { activeFileId, activeFileContent, isDirty } = get();
     if (activeFileId && isDirty && activeFileId !== exceptId) {
@@ -114,20 +109,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       set({ errorMessage: msg });
     },
 
-    // Single-flight guard: React StrictMode double-invokes effects, so without
-    // this the seeding transaction ran twice and the second bulkAdd threw BulkError.
     init: async () => {
       if (get().isInitialized) return;
       initPromise ??= (async () => {
         await initDatabase();
         const items = await fetchAllItems();
-        // Validate persisted default against real items — a deleted file must not
-        // come back as a phantom empty editor after refresh.
         const wanted = get().activeFileId;
         const activeFileId = items.some((i) => i.id === wanted)
           ? wanted
-          : items.find((i) => i.type === "file")?.id ?? null;
-        const content = activeFileId ? await fetchFileContent(activeFileId) : "";
+          : (items.find((i) => i.type === "file")?.id ?? null);
+        const content = activeFileId
+          ? await fetchFileContent(activeFileId)
+          : "";
         const activeItem = items.find((i) => i.id === activeFileId);
         const selectedFolderId = activeItem?.parentId ?? ROOT_ITEM_ID;
 
@@ -218,7 +211,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     },
 
     startInlineCreate: (type: ItemType, targetParentId?: string) => {
-      const { items, selectedItemId, selectedFolderId, expandedItemIds } = get();
+      const { items, selectedItemId, selectedFolderId, expandedItemIds } =
+        get();
       let parentId = targetParentId;
 
       if (!parentId) {
@@ -270,10 +264,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         return null;
       }
 
-      const newItem = await addItem(finalName, inlineCreate.type, inlineCreate.parentId);
+      const newItem = await addItem(
+        finalName,
+        inlineCreate.type,
+        inlineCreate.parentId
+      );
       const updatedItems = await fetchAllItems();
 
-      const nextExpanded = ensureExpanded(expandedItemIds, inlineCreate.parentId);
+      const nextExpanded = ensureExpanded(
+        expandedItemIds,
+        inlineCreate.parentId
+      );
 
       if (newItem.type === "file") {
         set({
@@ -359,7 +360,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     },
 
     confirmDeleteItem: async () => {
-      const { itemToDelete, activeFileId, selectedItemId, selectedFolderId, items } = get();
+      const {
+        itemToDelete,
+        activeFileId,
+        selectedItemId,
+        selectedFolderId,
+        items,
+      } = get();
       if (!itemToDelete) return;
 
       const deletedIds = new Set<string>([itemToDelete.id]);
@@ -386,7 +393,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       let nextSelected = selectedItemId;
       let nextFolderId = selectedFolderId;
 
-      // If active file was deleted (or was inside deleted folder), reset editor
       if (activeFileId && deletedIds.has(activeFileId)) {
         nextActiveFileId = null;
         nextActiveContent = "";
@@ -394,12 +400,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         nextIsDirty = false;
       }
 
-      // If selected item was deleted, navigate to parent folder
       if (selectedItemId && deletedIds.has(selectedItemId)) {
         nextSelected = fallbackFolderId;
       }
 
-      // If selected folder was deleted, navigate to parent folder
       if (deletedIds.has(selectedFolderId)) {
         nextFolderId = fallbackFolderId;
         if (!nextActiveFileId) {

@@ -55,13 +55,13 @@ export async function initDatabase(): Promise<void> {
   if (count === 0) {
     await db.transaction("rw", db.items, db.contents, async () => {
       await db.items.bulkAdd(INITIAL_ITEMS);
-      const contentsToSeed: FileContent[] = Object.entries(INITIAL_CONTENTS).map(
-        ([fileId, content]) => ({
-          fileId,
-          content,
-          updatedAt: Date.now(),
-        })
-      );
+      const contentsToSeed: FileContent[] = Object.entries(
+        INITIAL_CONTENTS
+      ).map(([fileId, content]) => ({
+        fileId,
+        content,
+        updatedAt: Date.now(),
+      }));
       await db.contents.bulkAdd(contentsToSeed);
     });
   }
@@ -76,7 +76,10 @@ export async function fetchFileContent(fileId: string): Promise<string> {
   return record?.content ?? "";
 }
 
-export async function saveFileContent(fileId: string, content: string): Promise<void> {
+export async function saveFileContent(
+  fileId: string,
+  content: string
+): Promise<void> {
   await db.contents.put({
     fileId,
     content,

@@ -1,6 +1,5 @@
 import type { WorkspaceItem } from "./types";
 
-/** Folders before files, then case-insensitive alphabetical by name. */
 export function compareWorkspaceItems(
   a: WorkspaceItem,
   b: WorkspaceItem

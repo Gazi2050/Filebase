@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Command as CommandPrimitive } from "cmdk"
-import { cn } from "cn"
+import * as React from "react";
+import { Command as CommandPrimitive } from "cmdk";
+import { cn } from "cn";
 
 import {
   Dialog,
@@ -10,12 +10,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  InputGroup,
-  InputGroupAddon,
-} from "@/components/ui/input-group"
-import { Check, Search } from "lucide-react"
+} from "@/components/ui/dialog";
+import { Check, Search } from "lucide-react";
 
 function Command({
   className,
@@ -30,7 +26,7 @@ function Command({
       )}
       {...props}
     />
-  )
+  );
 }
 
 function CommandDialog({
@@ -41,11 +37,11 @@ function CommandDialog({
   showCloseButton = false,
   ...props
 }: Omit<React.ComponentProps<typeof Dialog>, "children"> & {
-  title?: string
-  description?: string
-  className?: string
-  showCloseButton?: boolean
-  children: React.ReactNode
+  title?: string;
+  description?: string;
+  className?: string;
+  showCloseButton?: boolean;
+  children: React.ReactNode;
 }) {
   return (
     <Dialog {...props}>
@@ -65,7 +61,38 @@ function CommandDialog({
         </Command>
       </DialogContent>
     </Dialog>
-  )
+  );
+}
+
+function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="input-group"
+      role="group"
+      className={cn(
+        "group/input-group relative flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-input/30 transition-colors outline-none",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function InputGroupAddon({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      role="group"
+      data-slot="input-group-addon"
+      onClick={(e) => {
+        e.currentTarget.parentElement?.querySelector("input")?.focus();
+      }}
+      className={cn(
+        "order-first pl-3 pr-2.5 flex h-auto cursor-text items-center justify-center text-sm font-medium text-muted-foreground select-none [&>svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
 function CommandInput({
@@ -78,7 +105,7 @@ function CommandInput({
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full text-sm outline-hidden pr-3 disabled:cursor-not-allowed disabled:opacity-50",
             className
           )}
           {...props}
@@ -88,7 +115,7 @@ function CommandInput({
         </InputGroupAddon>
       </InputGroup>
     </div>
-  )
+  );
 }
 
 function CommandList({
@@ -104,7 +131,7 @@ function CommandList({
       )}
       {...props}
     />
-  )
+  );
 }
 
 function CommandEmpty({
@@ -117,7 +144,7 @@ function CommandEmpty({
       className={cn("py-6 text-center text-sm", className)}
       {...props}
     />
-  )
+  );
 }
 
 function CommandGroup({
@@ -133,7 +160,7 @@ function CommandGroup({
       )}
       {...props}
     />
-  )
+  );
 }
 
 function CommandSeparator({
@@ -146,7 +173,7 @@ function CommandSeparator({
       className={cn("my-1 h-px bg-border/50", className)}
       {...props}
     />
-  )
+  );
 }
 
 function CommandItem({
@@ -166,7 +193,7 @@ function CommandItem({
       {children}
       <Check className="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
     </CommandPrimitive.Item>
-  )
+  );
 }
 
 function CommandShortcut({
@@ -182,7 +209,7 @@ function CommandShortcut({
       )}
       {...props}
     />
-  )
+  );
 }
 
 export {
@@ -195,4 +222,4 @@ export {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
-}
+};

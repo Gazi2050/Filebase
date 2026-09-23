@@ -54,7 +54,9 @@ function WorkspaceCard({
             />
           ) : (
             <>
-              <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {item.name}
+              </p>
               {subtitle}
             </>
           )}
@@ -110,7 +112,8 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
   const isRoot = folder.id === ROOT_ITEM_ID;
   const isRenamingThisFolder = renamingItemId === folder.id;
   const childrenItems = useMemo(
-    () => items.filter((i) => i.parentId === folder.id).sort(compareWorkspaceItems),
+    () =>
+      items.filter((i) => i.parentId === folder.id).sort(compareWorkspaceItems),
     [items, folder.id]
   );
   const childFolders = childrenItems.filter((i) => i.type === "folder");
@@ -141,7 +144,8 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {childrenItems.length} {childrenItems.length === 1 ? "item" : "items"} in this location
+            {childrenItems.length}{" "}
+            {childrenItems.length === 1 ? "item" : "items"} in this location
           </p>
         </div>
 
@@ -199,9 +203,15 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
           <div className="flex size-12 items-center justify-center rounded-full bg-muted/50 mb-4">
             <Folder className="size-6 text-muted-foreground" />
           </div>
-          <h3 className="text-sm font-semibold text-foreground">This folder is empty</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            This folder is empty
+          </h3>
           <p className="mt-1 text-xs text-muted-foreground max-w-sm">
-            Create a new file or folder using the <span className="font-medium text-foreground">+ buttons in the sidebar</span>.
+            Create a new file or folder using the{" "}
+            <span className="font-medium text-foreground">
+              + buttons in the sidebar
+            </span>
+            .
           </p>
         </div>
       ) : (
@@ -219,8 +229,14 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
                     isRenaming={renamingItemId === subfolder.id}
                     onOpen={() => openFolder(subfolder.id)}
                     icon={<Folder className="size-5 shrink-0 text-primary" />}
-                    subtitle={<p className="text-[11px] text-muted-foreground">Folder</p>}
-                    trailing={<ChevronRight className="size-3.5 text-muted-foreground ml-1" />}
+                    subtitle={
+                      <p className="text-[11px] text-muted-foreground">
+                        Folder
+                      </p>
+                    }
+                    trailing={
+                      <ChevronRight className="size-3.5 text-muted-foreground ml-1" />
+                    }
                   />
                 ))}
               </div>
@@ -239,10 +255,13 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
                     item={file}
                     isRenaming={renamingItemId === file.id}
                     onOpen={() => selectItem(file.id)}
-                    icon={<FileText className="size-5 shrink-0 text-muted-foreground" />}
+                    icon={
+                      <FileText className="size-5 shrink-0 text-muted-foreground" />
+                    }
                     subtitle={
                       <p className="text-[11px] text-muted-foreground font-mono">
-                        {file.name.split(".").pop()?.toUpperCase() || "TXT"} File
+                        {file.name.split(".").pop()?.toUpperCase() || "TXT"}{" "}
+                        File
                       </p>
                     }
                   />

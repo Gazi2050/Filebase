@@ -51,8 +51,8 @@ The workspace is a **flat table with parent references** (adjacency list), not n
 
 ```ts
 interface WorkspaceItem {
-  id: string;            // e.g. "file-1726-4f2k1"
-  name: string;          // "notes.txt"
+  id: string; // e.g. "file-1726-4f2k1"
+  name: string; // "notes.txt"
   type: "folder" | "file";
   parentId: string | null; // null = root ("root")
   createdAt: number;

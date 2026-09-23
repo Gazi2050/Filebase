@@ -41,7 +41,12 @@ interface InlineInputRowProps {
   onCancel: () => void;
 }
 
-function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputRowProps) {
+function InlineInputRow({
+  type,
+  level,
+  onConfirm,
+  onCancel,
+}: InlineInputRowProps) {
   return (
     <div
       style={{ paddingLeft: `${level * 14 + 8}px` }}
@@ -105,11 +110,9 @@ function FileTreeNode({
   const isSelected = selectedItemId === item.getId();
   const level = item.getItemMeta().level;
   const itemProps = item.getProps();
-  const isTargetParent = inlineCreate !== null && inlineCreate.parentId === item.getId();
+  const isTargetParent =
+    inlineCreate !== null && inlineCreate.parentId === item.getId();
 
-  // Only one rename input can exist at a time. The tree skips rendering
-  // its input when the folder view is already showing one for this item —
-  // both listening for blur caused the loser to cancel the rename mid-flight.
   const mainPanelRendersRename =
     activeFileId === null &&
     (item.getId() === selectedFolderId ||
@@ -190,7 +193,9 @@ function FileTreeNode({
               className="flex-1"
             />
           ) : (
-            <span className="truncate text-sm">{data?.name ?? item.getItemName()}</span>
+            <span className="truncate text-sm">
+              {data?.name ?? item.getItemName()}
+            </span>
           )}
         </ContextMenuTrigger>
 
@@ -341,7 +346,8 @@ export function FileTree() {
       selectedItems: selectedItemId ? [selectedItemId] : [],
     },
     setExpandedItems: (updater) => {
-      const next = typeof updater === "function" ? updater(expandedItemIds) : updater;
+      const next =
+        typeof updater === "function" ? updater(expandedItemIds) : updater;
       setExpandedItemIds(next);
     },
     setSelectedItems: (updater) => {
