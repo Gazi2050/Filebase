@@ -14,43 +14,9 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 import { compareWorkspaceItems } from "@/lib/items";
-import { useInlineName } from "@/hooks/use-inline-name";
+import { InlineNameInput } from "@/components/shared/inline-name-input";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem } from "@/lib/types";
-import { cn } from "@/lib/utils";
-
-function InlineCardRenameInput({
-  initialValue,
-  onConfirm,
-  onCancel,
-  className,
-}: {
-  initialValue: string;
-  onConfirm: (name: string) => void;
-  onCancel: () => void;
-  className?: string;
-}) {
-  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
-    initialValue,
-    onConfirm,
-    onCancel
-  );
-
-  return (
-    <input
-      ref={inputRef}
-      value={value}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={handleKeyDown}
-      onBlur={handleBlur}
-      className={cn(
-        "h-6 w-full rounded border border-primary bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40",
-        className
-      )}
-    />
-  );
-}
 
 function WorkspaceCard({
   item,
@@ -79,10 +45,12 @@ function WorkspaceCard({
         {icon}
         <div className="min-w-0 flex-1">
           {isRenaming ? (
-            <InlineCardRenameInput
+            <InlineNameInput
               initialValue={item.name}
               onConfirm={(val) => confirmRename(item.id, val)}
               onCancel={cancelRename}
+              stopClickPropagation
+              className="w-full border-primary ring-primary/40"
             />
           ) : (
             <>
@@ -148,8 +116,6 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
   const childFolders = childrenItems.filter((i) => i.type === "folder");
   const childFiles = childrenItems.filter((i) => i.type === "file");
 
-  // On mobile the inline create input lives in the sidebar overlay — open it
-  // so the input is actually visible when creating from the folder header.
   const startCreate = (type: "file" | "folder") => {
     if (isMobile) openSidebarOverlay(true);
     startInlineCreate(type, folder.id);
@@ -162,11 +128,11 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
           <div className="flex items-center gap-2.5">
             <Folder className="size-6 text-primary shrink-0" />
             {isRenamingThisFolder ? (
-              <InlineCardRenameInput
+              <InlineNameInput
                 initialValue={folder.name}
                 onConfirm={(newName) => confirmRename(folder.id, newName)}
                 onCancel={cancelRename}
-                className="text-xl font-semibold h-9 w-auto min-w-48"
+                className="text-xl font-semibold h-9 w-auto min-w-48 border-primary"
               />
             ) : (
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -179,7 +145,6 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
           </p>
         </div>
 
-        {/* Quick actions for current folder — styled to match the editor header */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"

@@ -18,7 +18,6 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar className="border-r select-none">
-        {/* Sidebar Header - Exactly h-11 to align with Editor Header */}
         <SidebarHeader className="h-11 border-b px-3.5 py-0 flex flex-row items-center justify-between">
           <span className="text-xs font-semibold tracking-wider text-muted-foreground">
             EXPLORER

@@ -39,7 +39,6 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Expo radius scale: 6px compact rows · 8px CTAs/inputs · 12px cards · 16px large floating cards */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -49,10 +48,9 @@
   --radius-4xl: 2rem;
 }
 
-/* Expo design system, dark-only. Floor #0a0a0a · cards #171717 (surface-dark) ·
-   elevated #1a1a1a (surface-dark-elevated) · primary CTA inverts to white ·
-   muted text #b0b4ba (on-dark-soft) · error #f87171 (semantic-error, brightened for dark).
-   Hairlines are white washes — dark counterparts of Expo's #f0f0f3/#dcdee0. */
+/* Dark-only palette. Floor #0a0a0a, cards #171717, elevated #1a1a1a.
+   Primary inverts to white on dark. Muted text #b0b4ba. Destructive brightened for dark contrast.
+   Borders are white washes (oklch alpha). */
 :root {
   --background: #0a0a0a;
   --foreground: #ffffff;

@@ -18,7 +18,11 @@ export const metadata: Metadata = {
     "A local-first workspace explorer. Create files and folders, edit text, and keep everything stored right in your browser.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"

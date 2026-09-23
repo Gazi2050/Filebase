@@ -6,6 +6,7 @@ import {
   syncDataLoaderFeature,
   selectionFeature,
   hotkeysCoreFeature,
+  type ItemInstance,
 } from "@headless-tree/core";
 import {
   Folder,
@@ -28,25 +29,19 @@ import {
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 import { compareWorkspaceItems } from "@/lib/items";
-import { useInlineName } from "@/hooks/use-inline-name";
+import { InlineNameInput } from "@/components/shared/inline-name-input";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import type { WorkspaceItem, ItemType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-interface InlineInputProps {
+interface InlineInputRowProps {
   type: ItemType;
   level: number;
   onConfirm: (name: string) => void;
   onCancel: () => void;
 }
 
-function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputProps) {
-  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
-    "",
-    onConfirm,
-    onCancel
-  );
-
+function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputRowProps) {
   return (
     <div
       style={{ paddingLeft: `${level * 14 + 8}px` }}
@@ -58,44 +53,200 @@ function InlineInputRow({ type, level, onConfirm, onCancel }: InlineInputProps) 
       ) : (
         <FileText className="size-4 shrink-0 text-muted-foreground" />
       )}
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
+      <InlineNameInput
+        initialValue=""
+        onConfirm={onConfirm}
+        onCancel={onCancel}
         placeholder={type === "file" ? "filename (.txt)" : "folder name"}
-        className="h-6 flex-1 min-w-0 rounded border border-primary/60 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40 selection:bg-primary/20"
+        className="flex-1"
       />
     </div>
   );
 }
 
-interface InlineRenameProps {
-  initialValue: string;
-  onConfirm: (name: string) => void;
-  onCancel: () => void;
+interface FileTreeNodeProps {
+  item: ItemInstance<WorkspaceItem>;
+  selectedItemId: string | null;
+  activeFileId: string | null;
+  selectedFolderId: string;
+  renamingItemId: string | null;
+  inlineCreate: { parentId: string; type: ItemType } | null;
+  itemsMap: Map<string, WorkspaceItem>;
+  selectItem: (id: string) => Promise<void>;
+  startRename: (id: string) => void;
+  cancelRename: () => void;
+  confirmRename: (id: string, newName: string) => Promise<boolean>;
+  promptDeleteItem: (id: string) => void;
+  startInlineCreate: (type: ItemType, parentId?: string) => void;
+  confirmInlineCreate: (name: string) => Promise<WorkspaceItem | null>;
+  cancelInlineCreate: () => void;
 }
 
-function InlineRenameInput({ initialValue, onConfirm, onCancel }: InlineRenameProps) {
-  const { value, setValue, inputRef, handleKeyDown, handleBlur } = useInlineName(
-    initialValue,
-    onConfirm,
-    onCancel
-  );
+function FileTreeNode({
+  item,
+  selectedItemId,
+  activeFileId,
+  selectedFolderId,
+  renamingItemId,
+  inlineCreate,
+  itemsMap,
+  selectItem,
+  startRename,
+  cancelRename,
+  confirmRename,
+  promptDeleteItem,
+  startInlineCreate,
+  confirmInlineCreate,
+  cancelInlineCreate,
+}: FileTreeNodeProps) {
+  const data = item.getItemData();
+  const isFolder = item.isFolder();
+  const isExpanded = item.isExpanded();
+  const isSelected = selectedItemId === item.getId();
+  const level = item.getItemMeta().level;
+  const itemProps = item.getProps();
+  const isTargetParent = inlineCreate !== null && inlineCreate.parentId === item.getId();
+
+  // Only one rename input can exist at a time. The tree skips rendering
+  // its input when the folder view is already showing one for this item —
+  // both listening for blur caused the loser to cancel the rename mid-flight.
+  const mainPanelRendersRename =
+    activeFileId === null &&
+    (item.getId() === selectedFolderId ||
+      itemsMap.get(item.getId())?.parentId === selectedFolderId);
+  const isRenaming = renamingItemId === item.getId() && !mainPanelRendersRename;
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onClick={(e) => e.stopPropagation()}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={handleKeyDown}
-      onBlur={handleBlur}
-      className="h-6 flex-1 min-w-0 rounded border border-primary/60 bg-background px-1.5 text-xs text-foreground outline-none ring-1 ring-primary/40 selection:bg-primary/20"
-    />
+    <Fragment key={item.getId()}>
+      <ContextMenu>
+        <ContextMenuTrigger
+          render={
+            <div
+              {...itemProps}
+              onClick={(e) => {
+                itemProps.onClick?.(e);
+                if (isFolder) {
+                  if (isExpanded) {
+                    item.collapse();
+                  } else {
+                    item.expand();
+                  }
+                }
+                selectItem(item.getId());
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                startRename(item.getId());
+              }}
+              style={{ paddingLeft: `${level * 14 + 8}px` }}
+              className={cn(
+                "group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left text-sm transition-colors cursor-pointer outline-none",
+                isSelected
+                  ? "bg-accent font-medium text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+              )}
+            />
+          }
+        >
+          {isFolder ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isExpanded) {
+                  item.collapse();
+                } else {
+                  item.expand();
+                }
+              }}
+              className="flex items-center justify-center p-0.5 rounded hover:bg-accent/80 text-muted-foreground hover:text-foreground"
+            >
+              {isExpanded ? (
+                <ChevronDown className="size-3.5 shrink-0" />
+              ) : (
+                <ChevronRight className="size-3.5 shrink-0" />
+              )}
+            </button>
+          ) : (
+            <span className="w-3.5 shrink-0" />
+          )}
+
+          {isFolder ? (
+            isExpanded ? (
+              <FolderOpen className="size-4 shrink-0 text-primary" />
+            ) : (
+              <Folder className="size-4 shrink-0 text-primary" />
+            )
+          ) : (
+            <FileText className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+          )}
+
+          {isRenaming ? (
+            <InlineNameInput
+              initialValue={data?.name ?? item.getItemName()}
+              onConfirm={(newName) => confirmRename(item.getId(), newName)}
+              onCancel={cancelRename}
+              stopClickPropagation
+              className="flex-1"
+            />
+          ) : (
+            <span className="truncate text-sm">{data?.name ?? item.getItemName()}</span>
+          )}
+        </ContextMenuTrigger>
+
+        <ContextMenuContent>
+          {isFolder && (
+            <>
+              <ContextMenuItem
+                onClick={() => startInlineCreate("file", item.getId())}
+                className="cursor-pointer"
+              >
+                <FilePlus className="size-4 mr-2" />
+                <span>New File</span>
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => startInlineCreate("folder", item.getId())}
+                className="cursor-pointer"
+              >
+                <FolderPlus className="size-4 mr-2" />
+                <span>New Folder</span>
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
+
+          <ContextMenuItem
+            onClick={() => startRename(item.getId())}
+            className="cursor-pointer"
+          >
+            <Pencil className="size-4 mr-2" />
+            <span>Rename</span>
+            <ContextMenuShortcut>F2</ContextMenuShortcut>
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+
+          <ContextMenuItem
+            variant="destructive"
+            onClick={() => promptDeleteItem(item.getId())}
+            className="cursor-pointer"
+          >
+            <Trash2 className="size-4 mr-2" />
+            <span>Delete</span>
+            <ContextMenuShortcut>Del</ContextMenuShortcut>
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {isTargetParent && (
+        <InlineInputRow
+          type={inlineCreate.type}
+          level={level + 1}
+          onConfirm={(name) => confirmInlineCreate(name)}
+          onCancel={cancelInlineCreate}
+        />
+      )}
+    </Fragment>
   );
 }
 
@@ -144,7 +295,6 @@ export function FileTree() {
       }
     }
 
-    // Sort: folders first, then alphabetical by name
     for (const [, childIds] of map.entries()) {
       childIds.sort((a, b) => {
         const itemA = itemsMap.get(a);
@@ -222,7 +372,6 @@ export function FileTree() {
     }
   }, [items, expandedItemIds, isInitialized, tree]);
 
-  // Handle tree-level keyboard shortcuts (F2 rename, Delete key)
   const handleTreeKeyDown = (e: KeyboardEvent) => {
     if (renamingItemId || inlineCreate) return;
 
@@ -244,9 +393,6 @@ export function FileTree() {
   }
 
   const visibleItems = tree.getItems();
-
-
-
   const containerProps = tree.getContainerProps("Workspace Tree");
 
   return (
@@ -261,7 +407,6 @@ export function FileTree() {
       }}
       className="space-y-0.5 outline-none select-none min-h-full flex-1"
     >
-      {/* If creating at root level, render inline row at top */}
       {inlineCreate && inlineCreate.parentId === ROOT_ITEM_ID && (
         <InlineInputRow
           type={inlineCreate.type}
@@ -271,158 +416,26 @@ export function FileTree() {
         />
       )}
 
-      {visibleItems.map((item) => {
-        const data = item.getItemData();
-        const isFolder = item.isFolder();
-        const isExpanded = item.isExpanded();
-        const isSelected = selectedItemId === item.getId();
-        // ponytail: only ONE rename input may exist at a time. The tree suppresses
-        // its input when the main panel renders one for this item (folder view),
-        // because the focus handoff made the loser's blur cancel the rename.
-        const mainPanelRendersRename =
-          activeFileId === null &&
-          (item.getId() === selectedFolderId ||
-            itemsMap.get(item.getId())?.parentId === selectedFolderId);
-        const isRenaming =
-          renamingItemId === item.getId() && !mainPanelRendersRename;
-        const level = item.getItemMeta().level;
-        const itemProps = item.getProps();
-
-        const isTargetParent =
-          inlineCreate !== null && inlineCreate.parentId === item.getId();
-
-        return (
-          <Fragment key={item.getId()}>
-            <ContextMenu>
-              <ContextMenuTrigger
-                render={
-                  <div
-                    {...itemProps}
-                    onClick={(e) => {
-                      itemProps.onClick?.(e);
-                      if (isFolder) {
-                        if (isExpanded) {
-                          item.collapse();
-                        } else {
-                          item.expand();
-                        }
-                      }
-                      selectItem(item.getId());
-                    }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      startRename(item.getId());
-                    }}
-                    style={{ paddingLeft: `${level * 14 + 8}px` }}
-                    className={cn(
-                      "group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left text-sm transition-colors cursor-pointer outline-none",
-                      isSelected
-                        ? "bg-accent font-medium text-accent-foreground"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    )}
-                  />
-                }
-              >
-                {isFolder ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isExpanded) {
-                        item.collapse();
-                      } else {
-                        item.expand();
-                      }
-                    }}
-                    className="flex items-center justify-center p-0.5 rounded hover:bg-accent/80 text-muted-foreground hover:text-foreground"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="size-3.5 shrink-0" />
-                    ) : (
-                      <ChevronRight className="size-3.5 shrink-0" />
-                    )}
-                  </button>
-                ) : (
-                  <span className="w-3.5 shrink-0" />
-                )}
-
-                {isFolder ? (
-                  isExpanded ? (
-                    <FolderOpen className="size-4 shrink-0 text-primary" />
-                  ) : (
-                    <Folder className="size-4 shrink-0 text-primary" />
-                  )
-                ) : (
-                  <FileText className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                )}
-
-                {isRenaming ? (
-                  <InlineRenameInput
-                    initialValue={data?.name ?? item.getItemName()}
-                    onConfirm={(newName) => confirmRename(item.getId(), newName)}
-                    onCancel={cancelRename}
-                  />
-                ) : (
-                  <span className="truncate text-sm">{data?.name ?? item.getItemName()}</span>
-                )}
-              </ContextMenuTrigger>
-
-              <ContextMenuContent>
-                {isFolder && (
-                  <>
-                    <ContextMenuItem
-                      onClick={() => startInlineCreate("file", item.getId())}
-                      className="cursor-pointer"
-                    >
-                      <FilePlus className="size-4 mr-2" />
-                      <span>New File</span>
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => startInlineCreate("folder", item.getId())}
-                      className="cursor-pointer"
-                    >
-                      <FolderPlus className="size-4 mr-2" />
-                      <span>New Folder</span>
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                  </>
-                )}
-
-                <ContextMenuItem
-                  onClick={() => startRename(item.getId())}
-                  className="cursor-pointer"
-                >
-                  <Pencil className="size-4 mr-2" />
-                  <span>Rename</span>
-                  <ContextMenuShortcut>F2</ContextMenuShortcut>
-                </ContextMenuItem>
-
-                <ContextMenuSeparator />
-
-                <ContextMenuItem
-                  variant="destructive"
-                  onClick={() => promptDeleteItem(item.getId())}
-                  className="cursor-pointer"
-                >
-                  <Trash2 className="size-4 mr-2" />
-                  <span>Delete</span>
-                  <ContextMenuShortcut>Del</ContextMenuShortcut>
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
-
-            {/* If folder is target of inline creation and is expanded, render inline row right after folder */}
-            {isTargetParent && (
-              <InlineInputRow
-                type={inlineCreate.type}
-                level={level + 1}
-                onConfirm={(name) => confirmInlineCreate(name)}
-                onCancel={cancelInlineCreate}
-              />
-            )}
-          </Fragment>
-        );
-      })}
+      {visibleItems.map((item) => (
+        <FileTreeNode
+          key={item.getId()}
+          item={item}
+          selectedItemId={selectedItemId}
+          activeFileId={activeFileId}
+          selectedFolderId={selectedFolderId}
+          renamingItemId={renamingItemId}
+          inlineCreate={inlineCreate}
+          itemsMap={itemsMap}
+          selectItem={selectItem}
+          startRename={startRename}
+          cancelRename={cancelRename}
+          confirmRename={confirmRename}
+          promptDeleteItem={promptDeleteItem}
+          startInlineCreate={startInlineCreate}
+          confirmInlineCreate={confirmInlineCreate}
+          cancelInlineCreate={cancelInlineCreate}
+        />
+      ))}
 
       {visibleItems.length === 0 && !inlineCreate && (
         <div className="p-3 text-xs text-muted-foreground">
