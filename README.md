@@ -1,104 +1,130 @@
 # Filebase
 
-A local-first workspace explorer and notebook built with Next.js 16, React 19, TypeScript, Tailwind CSS v4, Dexie (IndexedDB), and Zustand. All data is stored locally in the browser with zero backend dependencies.
+Local-first workspace explorer and notebook. Files and folders are stored in the browser using Dexie and IndexedDB, with no backend or account required.
 
-## Getting Started (Local Development)
+## How to run the project
 
-1. **Clone the repository**
+Clone the repository and install dependencies. pnpm is the primary package manager for this repo, but npm and yarn work as well.
 
-   ```bash
-   git clone https://github.com/Gazi2050/Filebase.git
+```bash
+git clone https://github.com/Gazi2050/Filebase.git
+cd Filebase
+pnpm install
+pnpm run dev
+```
 
-   cd Filebase
-   ```
+If you are using npm or yarn:
 
-2. **Install dependencies**
+```bash
+npm install && npm run dev
+# or
+yarn install && yarn dev
+```
 
-   Make sure you have [pnpm](https://pnpm.io/) installed (recommended, though `npm` and `yarn` also work). Then run:
+The app runs locally at http://localhost:3000.
 
-   ```bash
-   pnpm install
-   ```
+To run a production build:
 
-3. **Start the development server**
+```bash
+pnpm run build
+pnpm run start
+```
 
-   ```bash
-   pnpm run dev
-   ```
-
-✅ The app will be running at `http://localhost:3000`
-
----
-
-## Project Structure
+## Project structure
 
 ```text
 app/
-  globals.css                 # Theme tokens & Tailwind styles
-  layout.tsx                  # Root layout & providers
-  page.tsx                    # Main layout: header, breadcrumbs, editor, palette
+  favicon.ico                 # App favicon
+  globals.css                 # CSS variables, dark theme tokens, Tailwind v4 setup
+  layout.tsx                  # Root layout, fonts, and TooltipProvider / Toaster wrappers
+  page.tsx                    # Main workspace layout, header breadcrumbs, editor, command palette
 components/
-  folder/folder-view.tsx      # Folder grid cards & actions
-  layout/app-sidebar.tsx      # Explorer sidebar shell
-  modals/delete-confirm-dialog.tsx # Cascading delete confirmation modal
-  shared/inline-name-input.tsx     # Reusable inline rename & create input
-  sidebar/file-tree.tsx       # Headless tree view & item renderer
-  ui/                         # Active UI primitives (button, dialog, kbd, etc.)
+  folder/
+    folder-view.tsx           # Folder card grid, folder title rename, and child item list
+  layout/
+    app-sidebar.tsx           # Sidebar container, explorer header, and new file/folder buttons
+  modals/
+    delete-confirm-dialog.tsx # Modal dialog confirming cascading deletions
+  shared/
+    inline-name-input.tsx     # Reusable text input for inline file and folder naming
+  sidebar/
+    file-tree.tsx             # Headless tree view, context menu, and FileTreeNode row renderer
+  ui/
+    alert-dialog.tsx          # Base alert dialog primitive
+    breadcrumb.tsx            # Header breadcrumb navigation primitive
+    button.tsx                # Button component with size and variant variants
+    command.tsx               # Command palette dialog and search input
+    context-menu.tsx          # Right-click context menu primitive
+    dialog.tsx                # Modal dialog primitives
+    kbd.tsx                   # Keyboard shortcut badge primitive
+    sheet.tsx                 # Mobile sidebar sheet overlay primitive
+    sidebar.tsx               # Collapsible desktop and mobile sidebar primitives
+    toast.tsx                 # Toast notifications wrapper
+    tooltip.tsx               # Tooltip primitive
 hooks/
-  use-before-unload-guard.ts  # Browser prompt on unsaved edits
-  use-inline-name.ts          # Autofocus, Enter/Escape & blur handling
-  use-keyboard-shortcuts.ts   # Global shortcuts (Ctrl+K, Ctrl+S, Ctrl+B)
-  use-mobile.ts               # Responsive viewport breakpoint detection
+  use-before-unload-guard.ts  # Browser beforeunload prompt when editor has unsaved changes
+  use-inline-name.ts          # Input focus, text range selection, and Enter/Escape key handlers
+  use-keyboard-shortcuts.ts   # Window keydown listeners for Ctrl+K, Ctrl+S, and Ctrl+B
+  use-mobile.ts               # matchMedia hook for switching mobile sidebar state
 lib/
-  db.ts                       # Dexie IndexedDB schema, seeding, and CRUD
-  items.ts                    # Item sort comparator (folders first)
-  types.ts                    # Core interfaces (WorkspaceItem, FileContent)
-  utils.ts                    # Class merging helper
-  store/use-workspace-store.ts # Zustand store for workspace state
+  db.ts                       # Dexie database setup, items/contents tables, and CRUD helpers
+  items.ts                    # Comparator sorting folders before files, then alphabetically
+  store/
+    use-workspace-store.ts    # Single Zustand store holding workspace state and actions
+  types.ts                    # WorkspaceItem, FileContent, and ItemType type definitions
+  utils.ts                    # cn helper merging clsx and tailwind-merge
 ```
 
----
+## State management approach
 
-## State Management Approach
+All client-side state lives in a single Zustand store in `lib/store/use-workspace-store.ts`.
 
-A single [Zustand](https://github.com/pmndrs/zustand) store (`use-workspace-store.ts`) manages all workspace state:
+The store holds:
 
-- Hierarchy, items, and expanded folder IDs
-- Active file, content buffer, and dirty-tracking (`activeFileContent` vs `lastSavedContent`)
-- Selected item and current folder
-- Transient UI state (inline creation, renaming, delete modals, errors)
+- The full list of workspace items (`items: WorkspaceItem[]`)
+- The active file ID, active file text content, last saved content, and `isDirty` flag
+- The selected item ID and selected folder ID
+- Expanded folder IDs for the sidebar tree (`expandedItemIds: string[]`)
+- Transient UI state: `inlineCreate` target, `renamingItemId`, `itemToDelete`, `errorMessage`, and `isSaving`
 
-**IndexedDB as source of truth:** Store actions persist mutations to IndexedDB (via Dexie) first, then update in-memory state. When switching between files, the store automatically flushes pending edits so changes are never lost.
+IndexedDB is the primary source of truth. Mutations do not optimistically invent state; store actions write to IndexedDB first (`addItem`, `dbRenameItem`, `dbDeleteItem`, `saveFileContent`), and once the write succeeds, the store calls `fetchAllItems()` from Dexie to refresh in-memory state.
 
----
+Typing in the note editor updates `activeFileContent` and sets `isDirty: true` in memory. This text buffer is flushed to IndexedDB in two situations:
 
-## File-System Data Structure
+1. Explicit save: User presses Ctrl+S or clicks the Save button, calling `saveActiveFile()`.
+2. Navigation flush: When the user selects another file (`selectItem`) or folder (`openFolder`), `flushDirtySave()` writes the dirty buffer of the previous file to IndexedDB before switching targets.
 
-The workspace uses an **adjacency list** model stored as flat records with parent pointers rather than a nested tree:
+## File-system data structure
+
+The file system uses a flat adjacency list rather than a deeply nested tree. Every folder and file is an individual record pointing to its parent via `parentId`.
+
+The core interface in `lib/types.ts`:
 
 ```ts
-interface WorkspaceItem {
+export type ItemType = "folder" | "file";
+
+export interface WorkspaceItem {
   id: string;
   name: string;
-  type: "file" | "folder";
+  type: ItemType;
   parentId: string | null;
   createdAt: number;
   updatedAt: number;
 }
 ```
 
-Stored across two IndexedDB tables:
+The workspace root is a folder with `id: "root"` and `parentId: null`. Child files and folders point to their direct container's ID in `parentId`.
 
-- `items`: Metadata (`id`, `name`, `type`, `parentId`, timestamps)
-- `contents`: File body text (`fileId`, `content`, `updatedAt`)
+Data is split across two IndexedDB tables in `lib/db.ts`:
 
-Separating metadata from file bodies keeps tree rendering fast, only fetching content when a file is opened.
+- `items`: Stores item metadata (`id, parentId, type, name, createdAt`).
+- `contents`: Stores file body text (`fileId, updatedAt`), keyed by `fileId`.
 
----
+This separation keeps metadata queries lightweight. Rendering the tree, navigating folders, and showing breadcrumbs only reads the `items` table. Text content is only fetched from the `contents` table when a specific file is opened into the editor.
 
-## Important Implementation Decisions
+## Important implementation decisions
 
-- **Single Inline Input:** The sidebar tree and folder cards share one `InlineNameInput` component, eliminating focus-blur race conditions and keeping naming validation consistent (non-empty, case-insensitive collision check).
-- **Navigation Auto-Save & Dirty State:** Keystrokes immediately flag dirty state (`Save *`, pulsing breadcrumb indicator). Navigating away flushes pending changes, while `beforeunload` prevents accidental tab closure.
-- **Cascading Atomic Deletes:** Deleting a folder recursively collects all descendant records and removes both metadata and content within a single Dexie transaction.
-- **Single-Flight Initialization:** A module-level promise singleton ensures React StrictMode's double-mount does not trigger duplicate database seeding.
+- Shared inline input: The sidebar tree and folder card views share the exact same `InlineNameInput` component. Reusing a single input prevents blur-event race conditions between the tree and the main panel, while keeping validation (empty string checks and case-insensitive sibling name collisions) in one place.
+- Navigation autosave and dirty tracking: Edits set `isDirty` instantly. Instead of discarding unsaved edits when a user clicks around the tree, `flushDirtySave` runs before changing the active file. A `beforeunload` window listener blocks accidental tab closure while `isDirty` is true.
+- Cascading delete transactions: Deleting a folder gathers all descendant folder and file IDs using a breadth-first queue over `parentId`. It then deletes all matching rows from both `items` and `contents` inside a single Dexie read-write transaction. If the active file was inside the deleted branch, the editor resets cleanly and navigates to the nearest surviving parent.
+- Single-flight initialization: React 19 StrictMode runs mount effects twice during development. A module-level `initPromise` variable in `use-workspace-store.ts` caches the initial database seed, preventing duplicate `bulkAdd` calls from throwing errors on initial load.
