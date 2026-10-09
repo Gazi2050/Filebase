@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local libsql dev database
+filebase-server.db*
+
+!.env.example
+.playwright-mcp

@@ -14,8 +14,14 @@ export function useKeyboardShortcuts({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
 
-      switch (e.key.toLowerCase()) {
+      // Inside the rich-text editor the editor owns its shortcuts
+      // (Mod+K link, Mod+B bold, ...) — only save stays app-level.
+      const target = e.target as HTMLElement | null;
+      if (key !== "s" && target?.closest?.(".ProseMirror")) return;
+
+      switch (key) {
         case "k":
           e.preventDefault();
           onSearch();

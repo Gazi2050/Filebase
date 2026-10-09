@@ -1,0 +1,133 @@
+/* Grip handle (from @editorcn/block-editor) inside the document editor:
+   hidden until the editor surface is hovered. Touch devices hide it
+   entirely via the block-editor stylesheet. */
+.doc-drag-scope:hover .drag-handle {
+  opacity: 1;
+}
+
+/* Small gap so the grabber doesn't touch the block edge. */
+.doc-drag-scope .drag-handle {
+  margin-left: -8px;
+}
+
+/* Let the drag-handle plugin hit-test the full editor canvas, while keeping
+   document text at the same centered measure as before. */
+.doc-drag-scope .ProseMirror > * {
+  width: 100%;
+  max-width: 41rem;
+  margin-inline: auto;
+}
+
+/* Remove the article's visual padding from the ProseMirror hit-test box.
+   Its child blocks stay centered and capped above, but pointer movement in
+   the surrounding canvas can now resolve to the nearest block as well. */
+.doc-drag-scope .rte-content {
+  flex: 1;
+  width: calc(100% + 2.5rem);
+  margin-left: -1.25rem;
+}
+
+.doc-drag-scope article > .relative {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .doc-drag-scope .rte-content {
+    width: calc(100% + 7rem);
+    margin-left: -3.5rem;
+  }
+}
+
+/* Neutral charcoal code surface, Notion-style: compact grouped controls
+   float top-right; the code clears them with extra top padding. */
+.doc-drag-scope .ProseMirror div[data-node-view-wrapper].doc-code-block {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: #111;
+}
+
+.doc-drag-scope .ProseMirror div[data-node-view-wrapper].doc-code-block pre {
+  margin-top: 0;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #e5e5e5;
+  padding-top: 2.5rem;
+}
+
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-comment,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-quote {
+  color: #737373;
+}
+
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-variable,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-template-variable,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-attribute,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-tag,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-regexp,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-link,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-name,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-selector-id,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-selector-class,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-attr {
+  color: #d4d4d4;
+}
+
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-number,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-meta,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-built_in,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-builtin-name,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-literal,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-type,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-params,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-keyword,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-selector-tag,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-title,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-section {
+  color: #d6ad78;
+}
+
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-string,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-symbol,
+.rte-root.doc-drag-scope .rte-content .ProseMirror pre .hljs-bullet {
+  color: #a3b18a;
+}
+
+/* Compact corners and a theme-matched scrollbar for template menus/popovers. */
+.doc-editor-menu,
+.doc-editor-popover {
+  border: 1px solid var(--border) !important;
+  border-radius: 0.625rem !important;
+  background: var(--popover) !important;
+  scrollbar-width: thin;
+  scrollbar-color: #555 transparent;
+}
+
+.doc-editor-menu::-webkit-scrollbar,
+.doc-editor-popover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.doc-editor-menu::-webkit-scrollbar-track,
+.doc-editor-popover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.doc-editor-menu::-webkit-scrollbar-thumb,
+.doc-editor-popover::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #555;
+  background-clip: padding-box;
+}
+
+.doc-editor-menu::-webkit-scrollbar-thumb:hover,
+.doc-editor-popover::-webkit-scrollbar-thumb:hover {
+  background: #777;
+  background-clip: padding-box;
+}

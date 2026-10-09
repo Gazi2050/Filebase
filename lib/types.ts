@@ -14,3 +14,15 @@ export interface FileContent {
   content: string;
   updatedAt: number;
 }
+
+/** Tombstone for a deleted item, so deletions propagate across devices. */
+export interface Deletion {
+  id: string;
+  deletedAt: number;
+}
+
+/** Single-row metadata table for the sync engine. */
+export interface SyncMetaRow {
+  key: "sync";
+  lastSyncedAt: number;
+}

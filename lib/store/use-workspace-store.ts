@@ -76,6 +76,7 @@ interface WorkspaceState {
 
   updateActiveContent: (content: string) => void;
   saveActiveFile: () => Promise<void>;
+  refreshFromDb: () => Promise<void>;
 }
 
 let initPromise: Promise<void> | null = null;
@@ -253,7 +254,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         return null;
       }
 
-      const finalName = formatFileName(trimmed, inlineCreate.type);
+      const finalName = formatFileName(trimmed);
 
       const exists = nameIsTaken(items, inlineCreate.parentId, finalName);
       if (exists) {
@@ -324,7 +325,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         return false;
       }
 
-      const finalName = formatFileName(trimmed, item.type);
+      const finalName = formatFileName(trimmed);
 
       if (finalName === item.name) {
         set({ renamingItemId: null });
@@ -441,6 +442,38 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         lastSavedContent: activeFileContent,
         isDirty: false,
       });
+    },
+
+    // Called by the sync engine after a pull. Note: the mounted editor is
+    // uncontrolled, so refreshed content shows after a file switch (LWW:
+    // the next local edit still wins on save).
+    refreshFromDb: async () => {
+      const { activeFileId, isDirty } = get();
+      const items = await fetchAllItems();
+
+      if (activeFileId && !items.some((i) => i.id === activeFileId)) {
+        set({
+          items,
+          activeFileId: null,
+          activeFileContent: "",
+          lastSavedContent: "",
+          isDirty: false,
+          selectedItemId: null,
+          selectedFolderId: ROOT_ITEM_ID,
+        });
+        return;
+      }
+
+      const patch: Partial<WorkspaceState> = { items };
+      if (activeFileId && !isDirty) {
+        const content = await fetchFileContent(activeFileId);
+        if (content !== get().lastSavedContent) {
+          patch.activeFileContent = content;
+          patch.lastSavedContent = content;
+          patch.isDirty = false;
+        }
+      }
+      set(patch as WorkspaceState);
     },
   };
 });

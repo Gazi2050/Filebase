@@ -62,7 +62,7 @@ function InlineInputRow({
         initialValue=""
         onConfirm={onConfirm}
         onCancel={onCancel}
-        placeholder={type === "file" ? "filename (.txt)" : "folder name"}
+        placeholder={type === "file" ? "filename" : "folder name"}
         className="flex-1"
       />
     </div>

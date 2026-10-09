@@ -29,21 +29,33 @@ import {
 } from "@/components/ui/command";
 import {
   Search,
-  Save,
   FileText,
   Folder,
   PanelLeft,
   FilePlus,
   FolderPlus,
   CircleAlert,
+  LogOut,
 } from "lucide-react";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 import { FolderView } from "@/components/folder/folder-view";
+import { SimpleDocumentEditor } from "@/components/templates/simple-document-editor";
+import { parseDocContent } from "@/lib/doc-content";
+import { AuthDialog } from "@/components/modals/auth-dialog";
+import { authClient } from "@/lib/auth-client";
+import { useSyncStore, syncNow, scheduleSync, type SyncStatus } from "@/lib/sync";
 import { ROOT_ITEM_ID } from "@/lib/db";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useBeforeUnloadGuard } from "@/hooks/use-before-unload-guard";
 import type { WorkspaceItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const SYNC_STATUS: Record<SyncStatus, { label: string; dot: string }> = {
+  local: { label: "Local only", dot: "bg-muted-foreground/40" },
+  syncing: { label: "Syncing…", dot: "bg-amber-500 animate-pulse" },
+  synced: { label: "Synced", dot: "bg-emerald-500" },
+  offline: { label: "Offline — retrying", dot: "bg-destructive" },
+};
 
 interface EditorHeaderProps {
   activeFileId: string | null;
@@ -53,8 +65,12 @@ interface EditorHeaderProps {
   isDirty: boolean;
   isSaving: boolean;
   selectedFolderId: string;
+  signedIn: boolean;
+  userEmail: string;
+  syncStatus: SyncStatus;
   onOpenCommand: () => void;
-  onSave: () => void;
+  onOpenAuth: () => void;
+  onSignOut: () => void;
   onOpenFolder: (id: string) => void;
   onSelectItem: (id: string) => void;
 }
@@ -67,8 +83,12 @@ function EditorHeader({
   isDirty,
   isSaving,
   selectedFolderId,
+  signedIn,
+  userEmail,
+  syncStatus,
   onOpenCommand,
-  onSave,
+  onOpenAuth,
+  onSignOut,
   onOpenFolder,
   onSelectItem,
 }: EditorHeaderProps) {
@@ -157,20 +177,50 @@ function EditorHeader({
       </button>
 
       <div className="flex items-center gap-2">
-        {activeFileId && (
-          <Button
-            variant={isDirty ? "default" : "outline"}
-            size="xs"
-            onClick={onSave}
-            disabled={isSaving}
-            className={cn(
-              "h-7 gap-1.5 cursor-pointer transition-colors",
-              isDirty && "shadow-sm"
-            )}
+        {isSaving && (
+          <span className="text-xs text-muted-foreground">Saving…</span>
+        )}
+        {signedIn && (
+          <span
+            className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground"
+            title="Cloud sync status"
           >
-            <Save className="size-3.5" />
-            <span>{isSaving ? "Saving..." : isDirty ? "Save *" : "Save"}</span>
+            <span className={cn("size-1.5 rounded-full", SYNC_STATUS[syncStatus].dot)} />
+            {SYNC_STATUS[syncStatus].label}
+          </span>
+        )}
+        {signedIn ? (
+          <>
+            <span className="hidden md:inline text-xs text-muted-foreground max-w-[160px] truncate">
+              {userEmail}
+            </span>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={onSignOut}
+              title="Sign out"
+              className="h-7 w-7 cursor-pointer p-0"
+            >
+              <LogOut className="size-3.5" />
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={onOpenAuth}
+            className="h-7 cursor-pointer"
+          >
+            Sign in
           </Button>
+        )}
+        {activeFileId && isDirty && !isSaving && (
+          <span
+            className="hidden sm:inline text-xs text-muted-foreground"
+            title="Auto-saves after you stop typing"
+          >
+            Unsaved
+          </span>
         )}
       </div>
     </header>
@@ -284,6 +334,10 @@ function CommandPalette({
 
 function MainContent() {
   const [openCommand, setOpenCommand] = useState(false);
+  const [openAuth, setOpenAuth] = useState(false);
+  const { data: session } = authClient.useSession();
+  const signedIn = !!session?.user;
+  const syncStatus = useSyncStore((s) => s.status);
   const {
     toggleSidebar,
     isMobile,
@@ -291,6 +345,7 @@ function MainContent() {
   } = useSidebar();
   const {
     items,
+    isInitialized,
     activeFileId,
     activeFileContent,
     isDirty,
@@ -313,6 +368,34 @@ function MainContent() {
   });
 
   useBeforeUnloadGuard(isDirty);
+
+  // Sync lifecycle: sync on session change, window focus, reconnect, interval.
+  useEffect(() => {
+    useSyncStore.setState({ signedIn });
+    if (signedIn) void syncNow();
+  }, [signedIn]);
+
+  // Auto-save: persist 1s after the last edit (timer resets on each change).
+  useEffect(() => {
+    if (!isDirty || !activeFileId) return;
+    const t = setTimeout(() => {
+      void saveActiveFile().then(() => scheduleSync(400));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [activeFileContent, isDirty, activeFileId, saveActiveFile]);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    const ping = () => void syncNow();
+    window.addEventListener("focus", ping);
+    window.addEventListener("online", ping);
+    const interval = setInterval(ping, 30_000);
+    return () => {
+      window.removeEventListener("focus", ping);
+      window.removeEventListener("online", ping);
+      clearInterval(interval);
+    };
+  }, [signedIn]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -394,25 +477,38 @@ function MainContent() {
         isDirty={isDirty}
         isSaving={isSaving}
         selectedFolderId={selectedFolderId}
+        signedIn={signedIn}
+        userEmail={session?.user?.email ?? ""}
+        syncStatus={syncStatus}
         onOpenCommand={() => setOpenCommand(true)}
-        onSave={saveActiveFile}
+        onOpenAuth={() => setOpenAuth(true)}
+        onSignOut={() => {
+          void authClient.signOut().then(() => {
+            useSyncStore.setState({ signedIn: false, status: "local" });
+          });
+        }}
         onOpenFolder={openFolder}
         onSelectItem={selectItem}
       />
 
-      {activeFileId ? (
-        <div className="flex flex-1 overflow-auto p-3 sm:p-6">
-          <textarea
-            value={activeFileContent}
-            onChange={(e) => updateActiveContent(e.target.value)}
-            className="h-full w-full resize-none border-none bg-transparent font-mono text-sm leading-relaxed outline-none focus:ring-0 text-foreground/90 placeholder:text-muted-foreground selection:bg-primary/20"
-            placeholder="Start typing notes..."
-            spellCheck={false}
+      {activeFileId && isInitialized ? (
+        <div className="flex min-h-0 flex-1 overflow-hidden p-3 sm:p-6">
+          <SimpleDocumentEditor
+            key={activeFileId}
+            className="min-h-0 w-full flex-1"
+            initialContent={parseDocContent(activeFileContent)}
+            onChange={(content) => {
+              // ponytail: JSON.stringify per keystroke — fine at personal-doc
+              // scale; swap for incremental serialization if profiling says so.
+              updateActiveContent(JSON.stringify(content));
+            }}
           />
         </div>
       ) : (
         <FolderView folder={currentFolder} />
       )}
+
+      <AuthDialog open={openAuth} onOpenChange={setOpenAuth} />
 
       <CommandPalette
         open={openCommand}

@@ -260,8 +260,7 @@ export function FolderView({ folder }: { folder: WorkspaceItem }) {
                     }
                     subtitle={
                       <p className="text-[11px] text-muted-foreground font-mono">
-                        {file.name.split(".").pop()?.toUpperCase() || "TXT"}{" "}
-                        File
+                        Document
                       </p>
                     }
                   />
