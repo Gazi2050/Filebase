@@ -16,19 +16,29 @@ export function isEmojiAlt(alt: string): boolean {
   return [...trimmed].length <= 4 && /\p{Extended_Pictographic}/u.test(trimmed);
 }
 
-/** Decode a twemoji image URL into its emoji character, e.g. …/1f389.png → 🎉 */
+/**
+ * Decode an emoji image URL into its emoji character. Works with any URL
+ * whose filename is a hex codepoint run — twemoji (1f389.png), JoyPixels
+ * (unicode/2764.png), Notion (emoji_u1f389.png) — plus dash-separated
+ * sequences (2764-fe0f.png → ❤️). The decoded character must actually be
+ * an emoji, so hashed upload filenames (deadbeef.png) are rejected.
+ */
 export function emojiFromSrc(src: string): string | null {
-  const m = /assets\/(?:img\/)?(?:72x72|svg|png)\/([0-9a-f-]+)\.(?:png|svg)$/i.exec(
-    src
-  );
-  if (!m) return null;
+  const file = src.split(/[?#]/)[0].split("/").pop() ?? "";
+  const name = file
+    .replace(/\.(png|svg|gif|webp)$/i, "")
+    .replace(/^(?:emoji[_-]*|u)+/i, "");
+  if (!/^[0-9a-f]+(?:-[0-9a-f]+)*$/i.test(name)) return null;
+  const parts = name.split("-").map((h) => parseInt(h, 16));
   try {
-    return String.fromCodePoint(
-      ...m[1].split("-").map((h) => parseInt(h, 16))
-    );
+    const char = String.fromCodePoint(...parts);
+    if ([...char].length <= 8 && /\p{Extended_Pictographic}/u.test(char)) {
+      return char;
+    }
   } catch {
-    return null;
+    // invalid codepoints
   }
+  return null;
 }
 
 import { Extension } from "@tiptap/core";

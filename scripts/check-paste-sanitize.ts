@@ -12,7 +12,7 @@ assert.equal(isEmojiAlt(""), false);
 assert.equal(isEmojiAlt("https://example.com/a.png"), false);
 assert.equal(isEmojiAlt("a screenshot of my desk"), false);
 
-// Twemoji URL decoding.
+// Emoji URL decoding — any hex-codepoint filename that decodes to a real emoji.
 assert.equal(
   emojiFromSrc(
     "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f389.png"
@@ -25,7 +25,17 @@ assert.equal(
   ),
   "❤️"
 );
+assert.equal(
+  emojiFromSrc("https://cdn.joypixels.com/images/ios/png/unicode/2764.png"),
+  "❤"
+);
+assert.equal(
+  emojiFromSrc("https://www.notion.so/images/emoji/emoji_u1f389.png"),
+  "🎉"
+);
 assert.equal(emojiFromSrc("https://example.com/photo.png"), null);
+assert.equal(emojiFromSrc("https://cdn.example.com/uploads/deadbeef.png"), null);
+assert.equal(emojiFromSrc("https://cdn.example.com/uploads/a.png"), null);
 assert.equal(emojiFromSrc(""), null);
 
 console.log("paste-sanitize checks passed");

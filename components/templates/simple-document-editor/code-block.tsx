@@ -43,7 +43,7 @@ const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
 
   return (
     <NodeViewWrapper className="doc-code-block relative">
-      <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
+      <div className="absolute top-1 right-1.5 z-10 flex items-center gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
