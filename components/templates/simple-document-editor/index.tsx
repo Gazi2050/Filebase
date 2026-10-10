@@ -5,8 +5,8 @@ import {
   ImagePlaceholder,
   ResizableImage,
 } from "@/components/extensions/image-placeholder";
-import { Table } from "@/components/extensions/table";
 import { TableHoverOverlay } from "@/components/extensions/table/table-hover-overlay";
+import { DocumentTable, MAX_COLUMNS } from "./table";
 import { Color } from "@tiptap/extension-color";
 import { Extension } from "@tiptap/core";
 import { AllSelection, TextSelection } from "@tiptap/pm/state";
@@ -124,7 +124,7 @@ export const SimpleDocumentEditor = ({
       Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,
-      Table.configure({ resizable: true }),
+      DocumentTable.configure({ resizable: false }),
       ResizableImage,
       ImagePlaceholder,
       TaskList.configure({ HTMLAttributes: { class: "rte-task-list" } }),
@@ -172,7 +172,7 @@ export const SimpleDocumentEditor = ({
           <RichTextEditor.Content className="min-h-0 flex-1 [&_.ProseMirror]:min-h-64! [&_.ProseMirror]:h-full! [&_.ProseMirror]:p-0! [&_mark]:rounded-sm [&_mark]:px-0.5 [&_mark]:text-inherit [&_mark:not([style])]:bg-yellow-400/40" />
         </article>
       </RichTextEditor>
-      <TableHoverOverlay editor={editor} />
+      <TableHoverOverlay editor={editor} maxColumns={MAX_COLUMNS} />
 
       <footer className="text-muted-foreground flex h-9 shrink-0 items-center gap-3 border-t px-3 text-xs tabular-nums">
         <span>{words.toLocaleString()} words</span>

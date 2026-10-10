@@ -28,6 +28,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
+import { MenuPill } from "@/components/shared/menu-pill";
 import { compareWorkspaceItems } from "@/lib/items";
 import { InlineNameInput } from "@/components/shared/inline-name-input";
 import { ROOT_ITEM_ID } from "@/lib/db";
@@ -142,11 +143,13 @@ function FileTreeNode({
                 startRename(item.getId());
               }}
               style={{ paddingLeft: `${level * 14 + 8}px` }}
+              data-dropdown-item
+              data-selected={isSelected || undefined}
               className={cn(
                 "group flex w-full items-center gap-2 rounded-md py-1.5 pr-2.5 text-left text-sm transition-colors cursor-pointer outline-none",
                 isSelected
                   ? "bg-accent font-medium text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             />
           }
@@ -200,9 +203,11 @@ function FileTreeNode({
         </ContextMenuTrigger>
 
         <ContextMenuContent>
+          <MenuPill>
           {isFolder && (
             <>
               <ContextMenuItem
+                data-dropdown-item
                 onClick={() => startInlineCreate("file", item.getId())}
                 className="cursor-pointer"
               >
@@ -210,6 +215,7 @@ function FileTreeNode({
                 <span>New File</span>
               </ContextMenuItem>
               <ContextMenuItem
+                data-dropdown-item
                 onClick={() => startInlineCreate("folder", item.getId())}
                 className="cursor-pointer"
               >
@@ -221,6 +227,7 @@ function FileTreeNode({
           )}
 
           <ContextMenuItem
+            data-dropdown-item
             onClick={() => startRename(item.getId())}
             className="cursor-pointer"
           >
@@ -232,6 +239,7 @@ function FileTreeNode({
           <ContextMenuSeparator />
 
           <ContextMenuItem
+            data-dropdown-item
             variant="destructive"
             onClick={() => promptDeleteItem(item.getId())}
             className="cursor-pointer"
@@ -240,6 +248,7 @@ function FileTreeNode({
             <span>Delete</span>
             <ContextMenuShortcut>Del</ContextMenuShortcut>
           </ContextMenuItem>
+          </MenuPill>
         </ContextMenuContent>
       </ContextMenu>
 
@@ -422,6 +431,7 @@ export function FileTree() {
         />
       )}
 
+      <MenuPill className="flex flex-col gap-1">
       {visibleItems.map((item) => (
         <FileTreeNode
           key={item.getId()}
@@ -442,6 +452,7 @@ export function FileTree() {
           cancelInlineCreate={cancelInlineCreate}
         />
       ))}
+      </MenuPill>
 
       {visibleItems.length === 0 && !inlineCreate && (
         <div className="p-3 text-xs text-muted-foreground">

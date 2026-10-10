@@ -7,7 +7,15 @@
  * 2. Non-standard `colwidth="240"` attributes on table cells → Tiptap's
  *    `data-colwidth`, so pasted tables keep their column widths and the
  *    resize handles work.
+ * 3. Oversized pasted tables are scaled to the content column so they
+ *    never render cut off.
  */
+
+/** Content column width in px (48rem) — pasted tables scale to fit it. */
+const MAX_TABLE_WIDTH_PX = 768;
+
+/** Narrowest a scaled column gets — keeps text readable. */
+const MIN_COLUMN_WIDTH_PX = 48;
 
 /** True when `alt` is a short emoji character (not a URL or description). */
 export function isEmojiAlt(alt: string): boolean {
@@ -54,10 +62,41 @@ export function sanitizePastedHTML(html: string): string {
     if (emoji) img.replaceWith(document.createTextNode(emoji));
   });
 
-  doc.querySelectorAll("[colwidth]").forEach((el) => {
-    const width = el.getAttribute("colwidth");
-    if (width) el.setAttribute("data-colwidth", width);
-    el.removeAttribute("colwidth");
+  // Pasted tables can carry widths far wider than our content column
+  // (e.g. 4 × 240px = 960px in a 768px column) — they'd render cut off.
+  // Tiptap reads the `colwidth` attribute natively, so keep the name and
+  // scale each table's columns proportionally to fit, keeping ratios.
+  // Scaled by the widest row so columns stay aligned across rows.
+  doc.querySelectorAll("table").forEach((table) => {
+    const rows = [...table.querySelectorAll("tr")];
+    const rowTotals = rows.map((row) =>
+      [...row.querySelectorAll("th[colwidth], td[colwidth]")].reduce(
+        (sum, cell) =>
+          sum +
+          ((cell.getAttribute("colwidth") ?? "")
+            .split(",")
+            .map((n) => parseInt(n.trim(), 10))
+            .filter((n) => Number.isFinite(n) && n > 0)
+            .reduce((a, b) => a + b, 0) || 0),
+        0
+      )
+    );
+    const widest = Math.max(0, ...rowTotals);
+    if (widest <= MAX_TABLE_WIDTH_PX) return;
+    const ratio = MAX_TABLE_WIDTH_PX / widest;
+    table.querySelectorAll("th[colwidth], td[colwidth]").forEach((cell) => {
+      cell.setAttribute(
+        "colwidth",
+        (cell.getAttribute("colwidth") ?? "")
+          .split(",")
+          .map((n) => {
+            const parsed = parseInt(n.trim(), 10);
+            if (!Number.isFinite(parsed) || parsed <= 0) return n.trim();
+            return String(Math.max(MIN_COLUMN_WIDTH_PX, Math.round(parsed * ratio)));
+          })
+          .join(",")
+      );
+    });
   });
 
   return doc.body.innerHTML;

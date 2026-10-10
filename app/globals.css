@@ -98,3 +98,26 @@
     cursor: pointer;
   }
 }
+
+/* Sliding menu highlight (see MenuPill): inside a pill menu the gliding
+   pill paints the hover state, so neutralize shadcn's instant per-item
+   backgrounds. Unlayered on purpose — it must beat Tailwind's layered
+   focus:/data-* background utilities. Text-color flips stay instant,
+   matching the reference menus. */
+.menu-pill
+  :is(
+    [data-slot="dropdown-menu-item"],
+    [data-slot="dropdown-menu-radio-item"],
+    [data-slot="context-menu-item"]
+  ):is(:focus, [data-highlighted]) {
+  background-color: transparent;
+}
+
+/* The selected row already has its own background — don't paint the hover
+   pill over it too. Pure CSS (no hook state), so it can't go stale. */
+.menu-pill:has(
+  [data-dropdown-item][data-selected]:is(:hover, :focus-visible)
+)
+  .ext-dropdown-pill {
+  opacity: 0;
+}

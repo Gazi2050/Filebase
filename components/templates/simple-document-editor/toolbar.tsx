@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { MenuPill } from "@/components/shared/menu-pill";
 
 import {
   ACTIVE_ITEM,
@@ -57,6 +58,7 @@ const TextStyleMenu = ({
   <DropdownMenu>
     <DropdownMenuTrigger render={<Button className="h-8 w-[6.5rem] justify-between px-2 text-[13px]" size="sm" variant="ghost" />}>{TEXT_STYLES.find((s) => s.value === value)?.label}<ChevronDown className="text-muted-foreground size-3.5" /></DropdownMenuTrigger>
     <DropdownMenuContent align="start" className="doc-editor-menu min-w-32 p-1">
+      <MenuPill>
       <DropdownMenuRadioGroup
         className="flex flex-col gap-0.5"
         value={value}
@@ -69,6 +71,7 @@ const TextStyleMenu = ({
         {TEXT_STYLES.map((style) => (
           <DropdownMenuRadioItem
             key={style.value}
+            data-dropdown-item
             className={cn(ACTIVE_ITEM, style.className)}
             value={style.value}
           >
@@ -76,6 +79,7 @@ const TextStyleMenu = ({
           </DropdownMenuRadioItem>
         ))}
       </DropdownMenuRadioGroup>
+      </MenuPill>
     </DropdownMenuContent>
   </DropdownMenu>
 );
@@ -92,6 +96,7 @@ const AlignMenu = ({
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button aria-label="Text alignment" className="text-muted-foreground h-8 gap-0.5 px-1.5" size="sm" variant="ghost" />}><Icon /><ChevronDown className="size-3!" /></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="doc-editor-menu min-w-28 p-1">
+        <MenuPill>
         <DropdownMenuRadioGroup
           className="flex flex-col gap-0.5"
           value={value}
@@ -100,12 +105,13 @@ const AlignMenu = ({
           }
         >
           {ALIGNMENTS.map(({ Icon: ItemIcon, label, value: v }) => (
-            <DropdownMenuRadioItem key={v} className={ACTIVE_ITEM} value={v}>
+            <DropdownMenuRadioItem key={v} data-dropdown-item className={ACTIVE_ITEM} value={v}>
               <ItemIcon />
               {label}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
+        </MenuPill>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -149,9 +155,11 @@ const MathMenu = ({
         <ChevronDown className="size-3!" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="doc-editor-menu min-w-40 p-1">
+        <MenuPill>
         {items.map(({ Icon, active, label, run }) => (
           <DropdownMenuItem
             key={label}
+            data-dropdown-item
             className={cn(
               "rounded-md py-1 text-[13px] [&_svg]:size-3.5!",
               active && "bg-accent text-accent-foreground"
@@ -162,6 +170,7 @@ const MathMenu = ({
             {label}
           </DropdownMenuItem>
         ))}
+        </MenuPill>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -271,10 +280,7 @@ const InsertMenu = ({ editor }: { editor: Editor | null }) => {
     {
       Icon: TableIcon,
       label: "Table",
-      onSelect: () =>
-        run((c) =>
-          c.insertTable({ cols: 3, rows: 3, withHeaderRow: true }).run()
-        ),
+      onSelect: () => run((c) => c.insertTable({ rows: 3, withHeaderRow: true }).run()),
     },
     {
       Icon: Quote,
@@ -297,9 +303,11 @@ const InsertMenu = ({ editor }: { editor: Editor | null }) => {
       <DropdownMenuTrigger render={<Button className="h-8 gap-1 px-2 text-[13px]" size="sm" variant="ghost" />}><Plus className="size-4" />Insert
                     <ChevronDown className="text-muted-foreground size-3.5" /></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="doc-editor-menu min-w-36 p-1">
+        <MenuPill>
         {items.map(({ Icon, label, onSelect }) => (
           <DropdownMenuItem
             key={label}
+            data-dropdown-item
             className="rounded-md py-1 text-[13px] [&_svg]:size-3.5!"
             onClick={onSelect}
           >
@@ -307,6 +315,7 @@ const InsertMenu = ({ editor }: { editor: Editor | null }) => {
             {label}
           </DropdownMenuItem>
         ))}
+        </MenuPill>
       </DropdownMenuContent>
     </DropdownMenu>
   );

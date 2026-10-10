@@ -198,7 +198,6 @@ const AddHandles = ({
         aria-label={labels.addColumnRight}
         className="ext-table-add"
         style={{
-          cursor: "col-resize",
           height: tableRect.height,
           left: tableRect.left + tableRect.width + 6,
           top: tableRect.top,
@@ -222,7 +221,6 @@ const AddHandles = ({
         aria-label={labels.addRowBelow}
         className="ext-table-add"
         style={{
-          cursor: "row-resize",
           height: 20,
           left: tableRect.left,
           top: tableRect.top + tableRect.height + 6,
@@ -245,7 +243,8 @@ const AddHandles = ({
 
 export const TableHoverOverlay = ({
   editor: editorProp,
-}: ToolbarComponentProps) => {
+  maxColumns = Number.POSITIVE_INFINITY,
+}: ToolbarComponentProps & { maxColumns?: number }) => {
   const { labels } = useToolbar();
   const editor = useToolbarEditor(editorProp);
 
@@ -517,7 +516,9 @@ export const TableHoverOverlay = ({
             runColumnOp={runColumnOp}
             runRowOp={runRowOp}
             showColumn={
-              hoveredCol !== null && hoveredCol === columns.length - 1
+              hoveredCol !== null &&
+              hoveredCol === columns.length - 1 &&
+              columns.length < maxColumns
             }
             showRow={hoveredRow !== null && hoveredRow === rows.length - 1}
             tableRect={tableRect}

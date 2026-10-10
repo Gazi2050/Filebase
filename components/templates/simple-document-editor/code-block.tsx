@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { MenuPill } from "@/components/shared/menu-pill";
 
 const LanguageIcon = ({ lang }: { lang: string }) => (
   <>{DEFAULT_LANGUAGE_ICONS[lang] ?? <span className="size-3.5" />}</>
@@ -63,9 +64,11 @@ const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
             align="end"
             className="doc-editor-menu doc-editor-language-menu max-h-64 overflow-y-auto p-1"
           >
+            <MenuPill>
             {CODE_BLOCK_LANGUAGES.map((lang) => (
               <DropdownMenuItem
                 key={lang}
+                data-dropdown-item
                 className={cn(
                   "rounded-md py-1 text-[13px] [&_svg]:size-3.5!",
                   lang === language && "bg-accent text-accent-foreground"
@@ -76,6 +79,7 @@ const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
                 {getLanguageLabel(lang)}
               </DropdownMenuItem>
             ))}
+            </MenuPill>
           </DropdownMenuContent>
         </DropdownMenu>
         <Button
