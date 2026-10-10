@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MenuPill } from "@/components/shared/menu-pill";
 import {
   Tooltip,
   TooltipContent,
@@ -41,7 +42,9 @@ export const MoreMenu = ({ editor }: { editor: Editor | null }) => (
   <DropdownMenu>
     <DropdownMenuTrigger render={<Button aria-label="More options" className="text-muted-foreground size-7" size="icon-sm" variant="ghost" />}><MoreHorizontal /></DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="min-w-36 p-1">
+      <MenuPill>
       <DropdownMenuItem
+        data-dropdown-item
         className="rounded-md py-1 text-[13px] [&_svg]:size-3.5!"
         onClick={() => navigator.clipboard.writeText(editor?.getHTML() ?? "")}
       >
@@ -49,12 +52,14 @@ export const MoreMenu = ({ editor }: { editor: Editor | null }) => (
         Copy as HTML
       </DropdownMenuItem>
       <DropdownMenuItem
+        data-dropdown-item
         className="rounded-md py-1 text-[13px] [&_svg]:size-3.5!"
         onClick={() => window.print()}
       >
         <Printer />
         Print
       </DropdownMenuItem>
+      </MenuPill>
     </DropdownMenuContent>
   </DropdownMenu>
 );

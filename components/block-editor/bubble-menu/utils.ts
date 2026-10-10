@@ -156,3 +156,30 @@ export const CODE_BLOCK_LANGUAGE_LABELS: Record<string, string> = {
 
 export const getLanguageLabel = (lang: string): string =>
   CODE_BLOCK_LANGUAGE_LABELS[lang] ?? lang;
+
+// Per-language icon tint from the Catppuccin Mocha palette, following the
+// vscode-icons pack (one recognizable color per language; duplicates are
+// fine since the glyph shapes differ).
+export const LANGUAGE_ICON_COLORS: Record<string, string> = {
+  bash: "#a6e3a1",
+  c: "#74c7ec",
+  cpp: "#f5c2e7",
+  css: "#89dceb",
+  go: "#94e2d5",
+  html: "#fab387",
+  java: "#eba0ac",
+  javascript: "#f9e2af",
+  json: "#f2cdcd",
+  kotlin: "#cba6f7",
+  markdown: "#cdd6f4",
+  php: "#b4befe",
+  plaintext: "#a6adc8",
+  python: "#89b4fa",
+  ruby: "#f38ba8",
+  rust: "#fab387",
+  sql: "#94e2d5",
+  swift: "#fab387",
+  typescript: "#89b4fa",
+  xml: "#89dceb",
+  yaml: "#f38ba8",
+};

@@ -18,4 +18,5 @@ export { DEFAULT_LANGUAGE_ICONS } from "./language-icons";
 export {
   CODE_BLOCK_LANGUAGES,
   getLanguageLabel,
+  LANGUAGE_ICON_COLORS,
 } from "./bubble-menu/utils";

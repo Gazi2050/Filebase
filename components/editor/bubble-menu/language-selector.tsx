@@ -13,6 +13,7 @@ import {
 import {
   CODE_BLOCK_LANGUAGES,
   getLanguageLabel,
+  LANGUAGE_ICON_COLORS,
   useEditorState,
   shallowEqual,
 } from "./utils";
@@ -45,6 +46,7 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
   );
 
   const langIcon = icons.languageIcons[currentLanguage] ?? <FallbackIcon />;
+  const langColor = LANGUAGE_ICON_COLORS[currentLanguage];
 
   return (
     <div style={{ position: "relative" }}>
@@ -52,7 +54,13 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen(!open)}
       >
-        <RteIcon>{langIcon}</RteIcon>
+        <RteIcon>
+          <span
+            style={{ color: langColor ?? "currentColor", display: "contents" }}
+          >
+            {langIcon}
+          </span>
+        </RteIcon>
         <span className="rte-bubble-btn-text">
           {getLanguageLabel(currentLanguage)}
         </span>
@@ -96,7 +104,14 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
                 }}
               >
                 <RteDropdownIcon>
-                  {icons.languageIcons[lang] ?? <FallbackIcon />}
+                  <span
+                    style={{
+                      color: LANGUAGE_ICON_COLORS[lang] ?? "currentColor",
+                      display: "contents",
+                    }}
+                  >
+                    {icons.languageIcons[lang] ?? <FallbackIcon />}
+                  </span>
                 </RteDropdownIcon>
                 <span>{getLanguageLabel(lang)}</span>
               </RteDropdownItem>

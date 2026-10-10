@@ -21,6 +21,7 @@ const RteDropdownItem = React.forwardRef<
       ref={ref}
       type="button"
       data-dropdown-item
+      data-selected={active || undefined}
       className={cls}
       {...props}
     />

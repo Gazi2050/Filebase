@@ -160,9 +160,10 @@ const MathMenu = ({
           <DropdownMenuItem
             key={label}
             data-dropdown-item
+            data-selected={active || undefined}
             className={cn(
               "rounded-md py-1 text-[13px] [&_svg]:size-3.5!",
-              active && "bg-accent text-accent-foreground"
+              active && "bg-accent font-medium text-accent-foreground"
             )}
             onClick={run}
           >

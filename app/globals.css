@@ -108,16 +108,25 @@
   :is(
     [data-slot="dropdown-menu-item"],
     [data-slot="dropdown-menu-radio-item"],
+    [data-slot="dropdown-menu-checkbox-item"],
+    [data-slot="dropdown-menu-sub-trigger"],
     [data-slot="context-menu-item"]
+  ):not([data-checked]):not([data-selected]):not(
+    [data-variant="destructive"]
   ):is(:focus, [data-highlighted]) {
   background-color: transparent;
 }
 
-/* The selected row already has its own background — don't paint the hover
-   pill over it too. Pure CSS (no hook state), so it can't go stale. */
+/* A radio/active item can become selected while the pointer stays on it.
+   The hook saw it as unselected on pointer-enter; this selector clears that
+   stale pill visually until the pointer moves elsewhere. Hover-only on
+   purpose: a selected tree row keeps DOM focus persistently, so including
+   keyboard focus here would suppress the pill for every row hover instead
+   of just the stale moment (the hook already clears the rect on focus). */
 .menu-pill:has(
-  [data-dropdown-item][data-selected]:is(:hover, :focus-visible)
-)
+    [data-dropdown-item][data-selected]:hover,
+    [data-dropdown-item][data-checked]:hover
+  )
   .ext-dropdown-pill {
   opacity: 0;
 }

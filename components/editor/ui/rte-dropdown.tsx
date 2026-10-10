@@ -31,6 +31,10 @@ const RteDropdown = React.forwardRef<HTMLDivElement, RteDropdownProps>(
       if (!item) {
         return;
       }
+      if (item.hasAttribute("data-selected")) {
+        setPill(null);
+        return;
+      }
       setPill({
         height: item.offsetHeight,
         left: item.offsetLeft,

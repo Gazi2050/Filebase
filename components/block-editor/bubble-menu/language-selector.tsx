@@ -13,6 +13,7 @@ import {
 import {
   CODE_BLOCK_LANGUAGES,
   getLanguageLabel,
+  LANGUAGE_ICON_COLORS,
   useEditorState,
   shallowEqual,
 } from "./utils";
@@ -31,6 +32,7 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
 
   const langIcon =
     icons.languageIcons[currentLanguage] ?? icons.codeBlockLanguageIcon;
+  const langColor = LANGUAGE_ICON_COLORS[currentLanguage];
 
   return (
     <div style={{ position: "relative" }}>
@@ -38,7 +40,13 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen(!open)}
       >
-        <BubbleDropdownIcon>{langIcon}</BubbleDropdownIcon>
+        <BubbleDropdownIcon>
+          <span
+            style={{ color: langColor ?? "currentColor", display: "contents" }}
+          >
+            {langIcon}
+          </span>
+        </BubbleDropdownIcon>
         <span className="block-editor-bubble-btn-text">
           {getLanguageLabel(currentLanguage)}
         </span>
@@ -70,7 +78,14 @@ export const LanguageSelector = ({ editor }: { editor: Editor }) => {
                 }}
               >
                 <BubbleDropdownIcon>
-                  {icons.languageIcons[lang] ?? icons.codeBlockLanguageIcon}
+                  <span
+                    style={{
+                      color: LANGUAGE_ICON_COLORS[lang] ?? "currentColor",
+                      display: "contents",
+                    }}
+                  >
+                    {icons.languageIcons[lang] ?? icons.codeBlockLanguageIcon}
+                  </span>
                 </BubbleDropdownIcon>
                 <span>{getLanguageLabel(lang)}</span>
               </BubbleDropdownItem>

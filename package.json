@@ -9,7 +9,7 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "node scripts/check-doc-content.ts && node scripts/check-sync-rules.ts && node scripts/check-strip-names.ts && node scripts/check-paste-sanitize.ts && node scripts/check-share-links.ts"
+    "check": "node scripts/check-doc-content.ts && node scripts/check-sync-rules.ts && node scripts/check-strip-names.ts && node scripts/check-paste-sanitize.ts && node scripts/check-share-links.ts && node scripts/check-menu-selection.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

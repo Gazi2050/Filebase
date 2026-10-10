@@ -169,7 +169,12 @@ function FileTreeNode({
                   item.expand();
                 }
               }}
-              className="flex items-center justify-center p-0.5 rounded hover:bg-accent/80 text-muted-foreground hover:text-foreground"
+              className={cn(
+                "flex items-center justify-center p-0.5 rounded text-muted-foreground",
+                // A selected row already has its own background — no hover
+                // wash on the disclosure button either.
+                isSelected ? "text-accent-foreground" : "hover:bg-accent/80 hover:text-foreground"
+              )}
             >
               {isExpanded ? (
                 <ChevronDown className="size-3.5 shrink-0" />
@@ -188,7 +193,10 @@ function FileTreeNode({
               <Folder className="size-4 shrink-0 text-primary" />
             )
           ) : (
-            <FileText className="size-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+            <FileText className={cn(
+              "size-4 shrink-0",
+              isSelected ? "text-accent-foreground" : "text-muted-foreground group-hover:text-foreground"
+            )} />
           )}
 
           {isRenaming ? (

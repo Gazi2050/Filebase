@@ -13,6 +13,7 @@ import { CodeBlock, DEFAULT_LANGUAGE_ICONS } from "@/components/editor";
 import {
   CODE_BLOCK_LANGUAGES,
   getLanguageLabel,
+  LANGUAGE_ICON_COLORS,
 } from "@/components/block-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,12 @@ import { cn } from "@/lib/utils";
 import { MenuPill } from "@/components/shared/menu-pill";
 
 const LanguageIcon = ({ lang }: { lang: string }) => (
-  <>{DEFAULT_LANGUAGE_ICONS[lang] ?? <span className="size-3.5" />}</>
+  <span
+    className="inline-flex [&_svg]:size-3.5!"
+    style={{ color: LANGUAGE_ICON_COLORS[lang] ?? "currentColor" }}
+  >
+    {DEFAULT_LANGUAGE_ICONS[lang] ?? <span className="size-3.5" />}
+  </span>
 );
 
 const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
@@ -64,21 +70,23 @@ const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
             align="end"
             className="doc-editor-menu doc-editor-language-menu max-h-64 overflow-y-auto p-1"
           >
-            <MenuPill>
-            {CODE_BLOCK_LANGUAGES.map((lang) => (
-              <DropdownMenuItem
-                key={lang}
-                data-dropdown-item
-                className={cn(
-                  "rounded-md py-1 text-[13px] [&_svg]:size-3.5!",
-                  lang === language && "bg-accent text-accent-foreground"
-                )}
-                onClick={() => updateAttributes({ language: lang })}
-              >
-                <LanguageIcon lang={lang} />
-                {getLanguageLabel(lang)}
-              </DropdownMenuItem>
-            ))}
+            <MenuPill className="flex flex-col gap-[2px]">
+              {CODE_BLOCK_LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang}
+                  data-dropdown-item
+                  data-selected={lang === language || undefined}
+                  className={cn(
+                    "rounded-md py-1 text-[13px] [&_svg]:size-3.5!",
+                    lang === language &&
+                      "bg-accent font-medium text-accent-foreground"
+                  )}
+                  onClick={() => updateAttributes({ language: lang })}
+                >
+                  <LanguageIcon lang={lang} />
+                  {getLanguageLabel(lang)}
+                </DropdownMenuItem>
+              ))}
             </MenuPill>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -89,7 +97,11 @@ const CodeBlockView = ({ node, updateAttributes }: NodeViewProps) => {
           variant="ghost"
           onClick={copy}
         >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          {copied ? (
+            <Check className="size-3.5" />
+          ) : (
+            <Copy className="size-3.5" />
+          )}
         </Button>
       </div>
       <pre>
