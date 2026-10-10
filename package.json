@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "db:reset": "rm -f filebase-server.db filebase-server.db-wal filebase-server.db-shm",
     "check": "node scripts/check-doc-content.ts && node scripts/check-sync-rules.ts && node scripts/check-strip-names.ts && node scripts/check-paste-sanitize.ts && node scripts/check-share-links.ts && node scripts/check-menu-selection.ts"
   },
   "dependencies": {
