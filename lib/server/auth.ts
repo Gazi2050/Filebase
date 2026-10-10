@@ -7,6 +7,12 @@ import { ensureAppSchema } from "./db";
 
 const dbUrl = process.env.TURSO_DATABASE_URL ?? "file:filebase-server.db";
 
+if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_SECRET) {
+  throw new Error(
+    "BETTER_AUTH_SECRET is required in production. Set it in the environment (see .env.example)."
+  );
+}
+
 export const auth = betterAuth({
   // { dialect, type } is auto-detected and wrapped in Kysely internally.
   database: {

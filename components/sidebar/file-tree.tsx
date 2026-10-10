@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useTree } from "@headless-tree/react";
 import {
   syncDataLoaderFeature,
@@ -16,6 +16,7 @@ import {
   ChevronDown,
   FilePlus,
   FolderPlus,
+  Link2,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "@/lib/store/use-workspace-store";
 import { MenuPill } from "@/components/shared/menu-pill";
+import { ShareDialog, type ShareTarget } from "@/components/modals/share-dialog";
 import { compareWorkspaceItems } from "@/lib/items";
 import { InlineNameInput } from "@/components/shared/inline-name-input";
 import { ROOT_ITEM_ID } from "@/lib/db";
@@ -86,6 +88,7 @@ interface FileTreeNodeProps {
   startInlineCreate: (type: ItemType, parentId?: string) => void;
   confirmInlineCreate: (name: string) => Promise<WorkspaceItem | null>;
   cancelInlineCreate: () => void;
+  onShare: (file: ShareTarget) => void;
 }
 
 function FileTreeNode({
@@ -104,6 +107,7 @@ function FileTreeNode({
   startInlineCreate,
   confirmInlineCreate,
   cancelInlineCreate,
+  onShare,
 }: FileTreeNodeProps) {
   const data = item.getItemData();
   const isFolder = item.isFolder();
@@ -236,6 +240,19 @@ function FileTreeNode({
             <ContextMenuShortcut>F2</ContextMenuShortcut>
           </ContextMenuItem>
 
+          {!isFolder && (
+            <ContextMenuItem
+              data-dropdown-item
+              onClick={() =>
+                onShare({ id: item.getId(), name: data?.name ?? item.getItemName() })
+              }
+              className="cursor-pointer"
+            >
+              <Link2 className="size-4 mr-2" />
+              <span>Share…</span>
+            </ContextMenuItem>
+          )}
+
           <ContextMenuSeparator />
 
           <ContextMenuItem
@@ -286,6 +303,8 @@ export function FileTree() {
     startInlineCreate,
     clearSelection,
   } = useWorkspaceStore();
+
+  const [shareFile, setShareFile] = useState<ShareTarget | null>(null);
 
   useEffect(() => {
     init();
@@ -450,9 +469,12 @@ export function FileTree() {
           startInlineCreate={startInlineCreate}
           confirmInlineCreate={confirmInlineCreate}
           cancelInlineCreate={cancelInlineCreate}
+          onShare={setShareFile}
         />
       ))}
       </MenuPill>
+
+      <ShareDialog file={shareFile} onOpenChange={(open) => { if (!open) setShareFile(null); }} />
 
       {visibleItems.length === 0 && !inlineCreate && (
         <div className="p-3 text-xs text-muted-foreground">

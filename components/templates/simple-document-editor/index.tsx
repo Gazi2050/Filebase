@@ -8,6 +8,7 @@ import {
 import { TableHoverOverlay } from "@/components/extensions/table/table-hover-overlay";
 import { DocumentTable, MAX_COLUMNS } from "./table";
 import { Color } from "@tiptap/extension-color";
+import Collaboration from "@tiptap/extension-collaboration";
 import { Extension } from "@tiptap/core";
 import { AllSelection, TextSelection } from "@tiptap/pm/state";
 import { Highlight } from "@tiptap/extension-highlight";
@@ -20,6 +21,7 @@ import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { useEditor, useEditorState } from "@tiptap/react";
 import { StarterKit } from "@tiptap/starter-kit";
+import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -102,16 +104,24 @@ export const SimpleDocumentEditor = ({
   className,
   initialContent = SAMPLE_CONTENT,
   onChange,
+  collaboration,
+  readOnly = false,
 }: SimpleDocumentEditorProps) => {
   const editor = useEditor({
-    content: initialContent,
+    content: collaboration ? undefined : initialContent,
+    editable: !readOnly,
     extensions: [
       StarterKit.configure({
         gapcursor: false,
         heading: { levels: [1, 2, 3] },
         link: false,
         codeBlock: false,
+        // Collaboration brings its own history handling.
+        undoRedo: collaboration ? false : undefined,
       }),
+      ...(collaboration
+        ? [Collaboration.configure({ document: collaboration.ydoc })]
+        : []),
       DocumentCodeBlock,
       FullSelectAll,
       PasteSanitize,
@@ -147,6 +157,17 @@ export const SimpleDocumentEditor = ({
       selector: ({ editor: e }) => (e && !e.isDestroyed ? readState(e) : null),
     }) ?? (editor ? readState(editor) : null);
 
+  // First client into an empty shared doc seeds it from the server snapshot.
+  // Same snapshot everywhere, so concurrent seeds converge.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (!editor || !collaboration || seededRef.current) return;
+    seededRef.current = true;
+    if (collaboration.ydoc.getXmlFragment("default").length === 0) {
+      editor.commands.setContent(initialContent);
+    }
+  }, [editor, collaboration, initialContent]);
+
   const words = state?.words ?? 0;
 
   return (
@@ -159,6 +180,7 @@ export const SimpleDocumentEditor = ({
       <RichTextEditor
         editor={editor}
         variant="subtle"
+        editable={!readOnly}
         className={cn(
           "bg-background doc-drag-scope relative flex min-h-0 flex-1 flex-col overflow-y-auto rounded-none! border-0! shadow-none!",
           SCROLLBAR
@@ -167,7 +189,7 @@ export const SimpleDocumentEditor = ({
         <BlockEditorProvider editor={editor}>
           <BlockEditor.DragHandle />
         </BlockEditorProvider>
-        <Toolbar editor={editor} state={state} />
+        {!readOnly && <Toolbar editor={editor} state={state} />}
         <article className="flex w-full flex-1 flex-col px-5 py-6 sm:px-14 sm:py-12">
           <RichTextEditor.Content className="min-h-0 flex-1 [&_.ProseMirror]:min-h-64! [&_.ProseMirror]:h-full! [&_.ProseMirror]:p-0! [&_mark]:rounded-sm [&_mark]:px-0.5 [&_mark]:text-inherit [&_mark:not([style])]:bg-yellow-400/40" />
         </article>

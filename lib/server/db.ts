@@ -65,6 +65,22 @@ export function ensureAppSchema(): Promise<void> {
           sql: "CREATE INDEX IF NOT EXISTS deletions_user_idx ON deletions (user_id, deleted_at)",
           args: [],
         },
+        {
+          sql: `CREATE TABLE IF NOT EXISTS shares (
+            id TEXT PRIMARY KEY,
+            file_id TEXT NOT NULL,
+            owner_id TEXT NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            permission TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            revoked_at INTEGER
+          )`,
+          args: [],
+        },
+        {
+          sql: "CREATE INDEX IF NOT EXISTS shares_file_idx ON shares (file_id, owner_id)",
+          args: [],
+        },
       ],
       "write"
     );
